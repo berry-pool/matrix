@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Spinner } from "./spinner";
 import metadata from "../data/metadata.json";
-import * as Contract from "../contract/offchain";
+import Berry16 from "../images/berry16.jpeg"; // Just an example for now TODO!
 //@ts-ignore
 import ParticleEffectButton from "react-particle-effect-button";
 
@@ -70,7 +70,8 @@ export const BerryBuyButton = ({
             setError("");
             try {
               // const image = metadata[randomBerry].image;
-              // await preloadImage(image); // TODO
+              await preloadImage(Berry16); // TODO
+              const Contract = await import("../contract/offchain");
 
               const [id, berryUtxo] = await Contract.getRandomAvailable();
 
