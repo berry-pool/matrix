@@ -6,6 +6,8 @@ import MatrixTitle from "../images/matrixTitle.svg";
 import Berry16 from "../images/berry16.jpeg";
 import { WalletSelector } from "../components/walletSelector";
 import { BerryBuyButton } from "../components/buyButton";
+import { UTxO } from "lucid-cardano";
+import { contractDetails } from "../contract/config";
 // Animation needs to be dynamically imported as it makes use of window quite a few times and so messes up SSR
 const { BerryAnimation } =
   typeof window !== "undefined"
@@ -15,13 +17,14 @@ const { BerryAnimation } =
 const IndexPage = () => {
   const [connected, setConnected] = React.useState<boolean>(false);
   const [start, setStart] = React.useState<boolean>(false);
-  const [confirmed, setConfirmed] = React.useState<{
-    state: boolean;
-    id: number;
-  }>({ state: false, id: -1 });
+  const [confirmed, setConfirmed] = React.useState<boolean>(false);
   const [final, setFinal] = React.useState<boolean>(false);
   const [isOpenWalletSelector, setIsOpenWalletSelector] = React.useState(false);
   const [network, setNetwork] = React.useState<number>(1);
+  const [selection, setSelection] = React.useState<{
+    id: number;
+    berryUtxo: UTxO | null;
+  }>();
 
   return (
     <>
@@ -30,7 +33,7 @@ const IndexPage = () => {
           {start && (
             //@ts-ignore
             <BerryAnimation
-              confirmed={confirmed.state}
+              confirmed={confirmed}
               onFinal={() => setFinal(true)}
             />
           )}
@@ -60,7 +63,7 @@ const IndexPage = () => {
                   You are now the proud owner of
                 </div>
                 <div className="font-bold text-xl md:text-3xl font-title mt-2">
-                  Matrix Berry #{confirmed.id}
+                  Matrix Berry #{selection?.id}
                 </div>
               </div>
             </div>
@@ -78,20 +81,38 @@ const IndexPage = () => {
           {connected &&
             !start &&
             (network === 0 ? (
-              <BerryBuyButton
-                setStart={setStart}
-                setConfirmed={setConfirmed}
-                title="Buy for 10 ADA"
-              />
+              !Number.isInteger(selection?.id) ? (
+                <div className="text-white text-center w-[90%] max-w-md">
+                  Matrix Berries are sold out.
+                </div>
+              ) : selection?.berryUtxo ||
+                Date.now() >= contractDetails.mintStart ? (
+                <BerryBuyButton
+                  setStart={setStart}
+                  setConfirmed={setConfirmed}
+                  title={`Buy for ${selection?.berryUtxo ? 5 : 10} ADA`}
+                />
+              ) : (
+                <div className="text-white text-center w-[90%] max-w-md">
+                  Public sale has not started yet. In order to get a Matrix
+                  Berry now you need to be a Berry holder. If you already bought
+                  a Matrix Berry as holder then you have to wait for the public
+                  sale as well.
+                  <div className="font-medium mt-6">Public sale starts at:</div>
+                  <div className="font-bold text-xl mt-2">
+                    {new Date(contractDetails.mintStart).toLocaleString()}
+                  </div>
+                </div>
+              )
             ) : (
-              <div className="text-white text-center">
+              <div className="text-white text-center w-[90%] max-w-md">
                 Wrong network,
                 <br /> please switch to mainnet.
               </div>
             ))}
           {start && !final && (
             <div className="font-light text-white absolute bottom-28 opacity-90">
-              {confirmed.state
+              {confirmed
                 ? "Waiting for revelation"
                 : " Waiting for confirmation"}
             </div>
@@ -124,6 +145,9 @@ const IndexPage = () => {
         setIsOpen={setIsOpenWalletSelector}
         onConnected={async () => {
           const network = await window.walletApi.getNetworkId();
+          const Contract = await import("../contract/offchain");
+          const [id, berryUtxo] = await Contract.getRandomAvailable();
+          setSelection({ id, berryUtxo });
           setNetwork(network);
           setConnected(true);
         }}

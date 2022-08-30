@@ -7,6 +7,7 @@ import {
   Construct,
   Data,
   fromHex,
+  Json,
   Lucid,
   MerkleTree,
   MintingPolicy,
@@ -20,55 +21,37 @@ import { decode } from "../utils/utils";
 import scripts from "./ghc/scripts.json";
 import assigned from "../data/berryAssigned.json";
 import metadata from "../data/metadata.json";
+import { contractDetails } from "./config";
 // create secrets.ts file at the root of the project with the constant projectId
 import { projectId } from "../../secrets";
 
 const lucid = await Lucid.new(
   new Blockfrost(
-    "https://cardano-testnet.blockfrost.io/api/v0",
+    "https://cardano-preview.blockfrost.io/api/v0",
     projectId,
   ),
-  "Testnet",
+  "Preview",
 );
 
-const contractDetails = {
-  registryOref: {
-    txHash: "b26a00bc3e795092f08ffeda4e8d74ae64a9f0690c7edbdc049f7beed4f54046",
-    outputIndex: 2,
-  },
-  controlOref: {
-    txHash: "f84ff26849f5682165d6967e5b26925fa6035110c22f9a0c886872515735054a",
-    outputIndex: 100,
-  },
-  registryTokenName: "(110)Registry",
-  berryPolicyId: "15be994a64bdb79dde7fe080d8e7ff81b33a9e4860e9ee0d857a8e85",
-  merkleRootMetadata:
-    "e44be91d0892234fc46b48878455b34ff9e1bd7d682517be80c4f87ddc7303ae",
-  merkleRootAssigned:
-    "71be0c95e03f2bb5274c62ff3acb3c92c264f8aa0732dbfecc05657854563e49",
-  payeeAddress:
-    "addr_test1vzmvs72wnfazvkv5gzjdpltee5rkgng4j9llzd5578m8ydgkp6edr",
-  paymentAmount: 10000000n,
-  mintStart: 0,
-};
+// -- Instantiate validators ------------------------------------------------------------------
 
 const mintMain: MintingPolicy = {
-  type: "PlutusV1",
+  type: "PlutusV2",
   script: scripts.mintMain,
 };
 
 const spendReference: SpendingValidator = {
-  type: "PlutusV1",
+  type: "PlutusV2",
   script: scripts.spendReference,
 };
 
 const spendControl: SpendingValidator = {
-  type: "PlutusV1",
+  type: "PlutusV2",
   script: scripts.spendControl,
 };
 
 const mintControl: MintingPolicy = {
-  type: "PlutusV1",
+  type: "PlutusV2",
   script: scripts.mintControl,
 };
 
@@ -79,7 +62,7 @@ const referenceAddress: Address = lucid.utils.validatorToAddress(
 const controlAddress: Address = lucid.utils.validatorToAddress(spendControl);
 const controlPolicyId: PolicyId = lucid.utils.mintingPolicyToId(mintControl);
 
-//----- Create Merkle trees
+// -- Merkle trees ------------------------------------------------------------------
 
 const metadataData = metadata.map((m, i) =>
   concat(
@@ -103,32 +86,77 @@ const merkleTreeAssigned = await MerkleTree.new(assignedData);
 
 //----- Create fake policy which imitates Berries (will be removed in production)
 
-// const { paymentCredential } = lucid.utils.getAddressDetails(
-//   await lucid.wallet.address(),
-// );
+export const fakeMint = async (): Promise<TxHash> => {
+  lucid.selectWallet(window.walletApi);
+  const { paymentCredential } = lucid.utils.getAddressDetails(
+    await lucid.wallet.address(),
+  );
 
-// const fakeOldPolicy: MintingPolicy = {
-//   type: "Native",
-//   script: toHex(
-//     C.NativeScript.new_script_pubkey(
-//       C.ScriptPubkey.new(C.Ed25519KeyHash.from_hex(paymentCredential?.hash!)),
-//     ).to_bytes(),
-//   ),
-// };
+  const fakeOldPolicy: MintingPolicy = {
+    type: "Native",
+    script: toHex(
+      C.NativeScript.new_script_pubkey(
+        C.ScriptPubkey.new(C.Ed25519KeyHash.from_hex(paymentCredential?.hash!)),
+      ).to_bytes(),
+    ),
+  };
 
-// const fakeOldPolicyId = lucid.utils.validatorToScriptHash(fakeOldPolicy);
+  const fakeOldPolicyId = lucid.utils.validatorToScriptHash(fakeOldPolicy);
 
-// export const fakeMint = async (budId: number): Promise<TxHash> => {
-//   const tx = await lucid.newTx()
-//     .mintAssets({ [fakeOldPolicyId + name(`SpaceBud${budId}`)]: 10n })
-//     .attachMintingPolicy(fakeOldPolicy)
-//     .complete();
+  const tx = await lucid.newTx()
+    .mintAssets({
+      [fakeOldPolicyId + name(`BerryTangelo`)]: 1n,
+      [fakeOldPolicyId + name(`BerryCoal`)]: 1n,
+    })
+    .attachMintingPolicy(fakeOldPolicy)
+    .complete();
 
-//   const signedTx = await tx.sign().complete();
-//   return signedTx.submit();
-// };
+  const signedTx = await tx.sign().complete();
+  return signedTx.submit();
+};
 
 //-------
+
+// -- Utils ------------------------------------------------------------------
+
+const name = (utf8: string): string => toHex(new TextEncoder().encode(utf8));
+const fromName = (hex: string): string =>
+  new TextDecoder().decode(decode(new TextEncoder().encode(hex)));
+const label = (l: number) => "0" + l.toString(16).padStart(4, "0") + "0";
+
+// -- Endpoints ------------------------------------------------------------------
+
+export const getAllMintedIds = async (): Promise<number[]> => {
+  const matrixAssets = await fetch(
+    `https://cardano-preview.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
+    { headers: { project_id: projectId } },
+  ).then((r) => r.json());
+  if (!matrixAssets || matrixAssets.error) return [];
+
+  return matrixAssets.filter((asset: any) =>
+    asset.asset.slice(56).startsWith(name("(100)"))
+  ).map((asset: any) => parseInt(fromName(asset.asset.slice(56)).slice(11)));
+};
+
+export const getMetadata = async (matrixId: number): Promise<Json> => {
+  const [refNFTUtxo] = await lucid.utxosAtWithUnit(
+    referenceAddress,
+    mainPolicyId + name(`(100)Matrix${matrixId}`),
+  );
+
+  if (!refNFTUtxo) return {};
+
+  const metadataDatum = Data.from(await lucid.datumOf(refNFTUtxo)) as Construct;
+
+  const metadata: {
+    name: string;
+    image: string;
+    id: number;
+    description: string;
+  } = Data
+    .toJson(metadataDatum.args[0]);
+  return metadata;
+};
 
 export const getRandomAvailable = async (): Promise<[number, UTxO | null]> => {
   lucid.selectWallet(window.walletApi);
@@ -145,7 +173,7 @@ export const getRandomAvailable = async (): Promise<[number, UTxO | null]> => {
   ).map((unit) => fromName(unit.slice(56)));
 
   const matrixAssets = await fetch(
-    `https://cardano-testnet.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
+    `https://cardano-preview.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
     { headers: { project_id: projectId } },
   ).then((r) => r.json());
 
@@ -153,7 +181,6 @@ export const getRandomAvailable = async (): Promise<[number, UTxO | null]> => {
     if (!matrixAssets || matrixAssets.error) {
       return [...Array(100)].map((_, i) => i);
     } else {
-      console.log(matrixAssets);
       const matrixIds: Array<number> = matrixAssets.filter((asset: any) =>
         asset.asset.slice(56).startsWith(name("(100)"))
       ).map((asset: any) =>
@@ -199,12 +226,12 @@ export const deploy = async (): Promise<TxHash> => {
   if (!controlUtxo) throw new Error("NoUTxOError");
 
   const tx = lucid.newTx();
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 50; i++) {
     tx.mintAssets(
       { [controlPolicyId + name(`${i}`)]: 1n },
       Data.to(new Construct(0, [])),
     );
-    tx.payToContract(controlAddress, Data.to(0n), {
+    tx.payToContract(controlAddress, { inline: Data.to(0n) }, {
       [controlPolicyId + name(`${i}`)]: 1n,
     });
   }
@@ -241,7 +268,7 @@ export const mint = async (
       ),
       hasBerry
         ? new Construct(0, [
-          new Construct(0, [berryName]),
+          berryName,
           berryProof.map((p) =>
             p.left
               ? new Construct(0, [new Construct(0, [p.left])])
@@ -269,8 +296,8 @@ export const mint = async (
     .applyIf(hasBerry, (tx) => {
       tx.collectFrom([berryUtxo!]);
     })
-    .validFrom(Date.now() - 100000)
-    .validTo(Date.now() + 1200000)
+    .validFrom(Date.now() - 100000) // TODO
+    .validTo(Date.now() + 100000) // TODO
     .mintAssets({
       [mainPolicyId + name(`(100)Matrix${matrixId}`)]: 1n,
       [mainPolicyId + name(`(222)Matrix${matrixId}`)]: 1n,
@@ -278,15 +305,18 @@ export const mint = async (
     .payToContract(referenceAddress, Data.to(new Construct(0, [m, 1n])), {
       [mainPolicyId + name(`(100)Matrix${matrixId}`)]: 1n,
     })
-    .payToContract(controlAddress, Data.to(1n), controlUtxo.assets)
+    .payToContract(controlAddress, { inline: Data.to(1n) }, controlUtxo.assets)
     .payToAddress(contractDetails.payeeAddress, {
-      lovelace: contractDetails.paymentAmount,
+      lovelace: hasBerry
+        ? contractDetails.paymentAmount / 2n
+        : contractDetails.paymentAmount,
     })
     .attachSpendingValidator(spendControl)
     .attachMintingPolicy(mintMain)
     .complete();
 
   const signedTx = await tx.sign().complete();
+
   return signedTx.submit();
 };
 
@@ -300,10 +330,11 @@ export const burn = async (matrixId: number): Promise<TxHash> => {
 
   if (!refNFTUtxo) throw new Error("NoUTxOError");
 
+  const refRedeemer = Data.to(new Construct(0, []));
   const burnRedeemer = Data.to(new Construct(1, []));
 
   const tx = await lucid.newTx()
-    .collectFrom([refNFTUtxo], burnRedeemer)
+    .collectFrom([refNFTUtxo], refRedeemer)
     .mintAssets({
       [mainPolicyId + name(`(100)Matrix${matrixId}`)]: -1n,
       [mainPolicyId + name(`(222)Matrix${matrixId}`)]: -1n,
@@ -322,7 +353,11 @@ export const redeemControl = async (): Promise<TxHash> => {
   const controlUtxos = (await lucid.utxosAt(
     controlAddress,
   )).filter((utxo) =>
-    Object.keys(utxo.assets).some((asset) => asset.startsWith(controlPolicyId))
+    Object.keys(utxo.assets).some((asset) =>
+      asset.startsWith(
+        controlPolicyId,
+      )
+    )
   ).slice(0, 10);
 
   const controlRedeemer = Data.to(new Construct(1, []));
@@ -338,16 +373,48 @@ export const redeemControl = async (): Promise<TxHash> => {
   const tx = await lucid.newTx().collectFrom(controlUtxos, controlRedeemer)
     .mintAssets(controlAssets, controlRedeemer).addSigner(
       await lucid.wallet.address(),
-    ).complete();
+    ).attachMintingPolicy(mintControl).attachSpendingValidator(spendControl)
+    .complete();
 
   const signedTx = await tx.sign().complete();
   return signedTx.submit();
 };
 
-export const awaitTx = (txHash: TxHash) => lucid.awaitTx(txHash);
+export const updateDescription = async (
+  matrixId: number,
+  description: string,
+): Promise<TxHash> => {
+  lucid.selectWallet(window.walletApi);
 
-// helper function
-const name = (utf8: string): string => toHex(new TextEncoder().encode(utf8));
-const fromName = (hex: string): string =>
-  new TextDecoder().decode(decode(new TextEncoder().encode(hex)));
-const label = (l: number) => "0" + l.toString(16).padStart(4, "0") + "0";
+  const [refNFTUtxo] = await lucid.utxosAtWithUnit(
+    referenceAddress,
+    mainPolicyId + name(`(100)Matrix${matrixId}`),
+  );
+
+  if (!refNFTUtxo) throw new Error("NoUTxOError");
+
+  const metadataDatum = Data.from(await lucid.datumOf(refNFTUtxo)) as Construct;
+
+  const metadata: {
+    name: string;
+    image: string;
+    id: number;
+    description: string;
+  } = Data
+    .toJson(metadataDatum.args[0]);
+
+  metadata.description = description;
+
+  metadataDatum.args[0] = Data.fromJson(metadata);
+
+  const tx = await lucid.newTx().collectFrom(
+    [refNFTUtxo],
+    Data.to(new Construct(1, [])),
+  ).payToContract(referenceAddress, Data.to(metadataDatum), refNFTUtxo.assets)
+    .attachSpendingValidator(spendReference)
+    .complete();
+  const signedTx = await tx.sign().complete();
+  return signedTx.submit();
+};
+
+export const awaitTx = (txHash: TxHash) => lucid.awaitTx(txHash);

@@ -7,12 +7,12 @@ import qualified Data.ByteString.Base16 as B16
 import qualified Data.ByteString.Char8 as C
 import qualified Data.ByteString.Lazy as LBS
 import qualified Data.ByteString.Short as SBS
-import qualified Plutus.Script.Utils.V1.Scripts as Scripts
-import qualified Plutus.Script.Utils.V1.Typed.Scripts.Validators as Scripts
-import qualified Plutus.Script.Utils.V1.Typed.Scripts.MonetaryPolicies as Scripts
-import Plutus.Script.Utils.V1.Address as Scripts
-import qualified Plutus.V1.Ledger.Api as Api
-import Plutus.V1.Ledger.Contexts as Api
+import qualified Plutus.Script.Utils.V2.Scripts as Scripts
+import qualified Plutus.Script.Utils.V2.Typed.Scripts.Validators as Scripts
+import qualified Plutus.Script.Utils.V2.Typed.Scripts.MonetaryPolicies as Scripts
+import Plutus.Script.Utils.V2.Address as Scripts
+import qualified Plutus.V2.Ledger.Api as Api
+import Plutus.V2.Ledger.Contexts as Api
 import Plutus.V1.Ledger.Value as V
 import Plutus.V1.Ledger.Interval as I
 import Ledger.Value as V
@@ -24,30 +24,27 @@ import Data.String (IsString)
 import qualified PlutusTx.Builtins as Builtins
 import qualified PlutusTx.AssocMap as M
 
-
--- Config ------------------------------------------------------------------
+-- | Config ------------------------------------------------------------------
 
 mainDetails :: MainDetails
 mainDetails = MainDetails {
-                        registryOref        = Api.TxOutRef "b26a00bc3e795092f08ffeda4e8d74ae64a9f0690c7edbdc049f7beed4f54046" 2
-                    ,   registryTokenName   = "(110)Registry"
-                    ,   controlCs           = mintSymbolControl
-                    ,   berryCs             = "15be994a64bdb79dde7fe080d8e7ff81b33a9e4860e9ee0d857a8e85"
-                    ,   merkleRootMetadata  = "e44be91d0892234fc46b48878455b34ff9e1bd7d682517be80c4f87ddc7303ae"
+                        controlCs           = mintSymbolControl
+                    ,   berryCs             = "a65e6e94d1a260dbc6c4d9319b45585fa54b83742a33a2c599df56b9"
+                    ,   merkleRootMetadata  = "3edc812d9e88c44f9d7d6f19bfa5402c6a5e7451c380fc40779612aba3191292"
                     ,   merkleRootAssigned  = "71be0c95e03f2bb5274c62ff3acb3c92c264f8aa0732dbfecc05657854563e49"
                     ,   refAddress          = spendAddrReference
                     ,   payeeAddress        = Api.Address (Api.PubKeyCredential "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235") Nothing
                     ,   paymentAmount       = 10000000
-                    ,   mintStart           = 0
+                    ,   mintStart           = 1661863648803
                     }
 
 controlOwner :: Api.PubKeyHash
-controlOwner = Api.PubKeyHash "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235"
+controlOwner = "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235"
 
 controlOref :: Api.TxOutRef
-controlOref = Api.TxOutRef "f84ff26849f5682165d6967e5b26925fa6035110c22f9a0c886872515735054a" 100
+controlOref = Api.TxOutRef "33af22ebdfafc2554675af9e3b9bd3c2d760c18439d8bd2b384abeb628843ea4" 50
 
--- Data and Redeemer ------------------------------------------------------------------
+-- | Data and Redeemer ------------------------------------------------------------------
 
 type Metadata = M.Map BuiltinData BuiltinData
 data DatumMetadata = DatumMetadata {
@@ -56,9 +53,7 @@ data DatumMetadata = DatumMetadata {
                     }
 
 data MainDetails = MainDetails { 
-                        registryOref         :: Api.TxOutRef
-                     ,  registryTokenName    :: Api.TokenName
-                     ,  controlCs            :: Api.CurrencySymbol
+                        controlCs            :: Api.CurrencySymbol
                      ,  berryCs              :: Api.CurrencySymbol
                      ,  merkleRootMetadata   :: MT.Hash
                      ,  merkleRootAssigned   :: MT.Hash
@@ -72,7 +67,7 @@ data Buyer = BerryHolder Api.TokenName MT.Proof | NoHolder
 
 data MainAction = MintNFT MT.Proof Buyer | BurnNFT
 
-data RefAction = Burn | UpdateName
+data RefAction = Burn | UpdateDescription
 
 data ControlAction = Mint | Destroy
 
@@ -105,7 +100,7 @@ mintValidatorMain c action ctx = case action of
     checkMintNFT merkleProofMetadata buyer =
                             let 
                                 -- | Output with reference NFT.
-                                [((Api.DatumHash refOutDatumHash), refOutValue)] = scriptOutputsAtAddress (refAddress c) txInfo
+                                [((Api.OutputDatumHash (Api.DatumHash refOutDatumHash)), refOutValue)] = scriptOutputsAtAddress (refAddress c) txInfo
                                 [(refOutCs,Api.TokenName refOutName,refOutAm)] = V.flattenValue (V.noAdaValue refOutValue)
                                 -- | Mint value (reference NFT and user token).
                                 [(userCs, Api.TokenName userName, userAm), (refCs, Api.TokenName refName, refAm)] = V.flattenValue txMint
@@ -158,8 +153,8 @@ mintValidatorMain c action ctx = case action of
 {-# INLINEABLE spendValidatorReference #-}
 spendValidatorReference :: DatumMetadata -> RefAction -> Api.ScriptContext -> Bool
 spendValidatorReference datumMetadata action ctx = case action of
-  Burn          -> checkBurn
-  UpdateName    -> checkUpdateName
+  Burn              -> checkBurn
+  UpdateDescription -> checkUpdateDescription
   where
     txInfo :: Api.TxInfo
     txInfo = Api.scriptContextTxInfo ctx
@@ -178,7 +173,7 @@ spendValidatorReference datumMetadata action ctx = case action of
     ownOutputDatumMetadata :: DatumMetadata
     ownOutputValue :: V.Value
     (ownOutputDatumMetadata, ownOutputValue) = case getContinuingOutputs ctx of
-      [o] -> let Just h = txOutDatumHash o in case Api.findDatum h txInfo of
+      [o] -> let (Api.OutputDatumHash h) = txOutDatum o in case Api.findDatum h txInfo of
         Just (Api.Datum d) -> case PlutusTx.fromBuiltinData d of
           Just m -> (m, txOutValue o)
 
@@ -190,31 +185,35 @@ spendValidatorReference datumMetadata action ctx = case action of
             let
                 -- | Allow burning only one pair (reference NFT and user token) at once.
                 [(userCs, Api.TokenName userName, userAm), (refCs, Api.TokenName refName, refAm)] = V.flattenValue txMint
-                [(ownCs, Api.TokenName ownName, ownAm)] = V.flattenValue (V.noAdaValue ownValue)
+                [(ownCs, Api.TokenName ownName, _)] = V.flattenValue (V.noAdaValue ownValue)
             in
                 -- | Matching policy ids and quantities.
                 -1 == userAm && -1 == refAm &&
                 ownCs == userCs && ownCs == refCs && 
-                -- | User token belonging to reference NFT is provided.
-                providesUserToken ownCs (Api.TokenName userName) 1 &&
                 -- | Matching asset names.
                 takeByteString prefixLength userName == "(222)" && takeByteString prefixLength refName == "(100)" &&
-                dropByteString prefixLength userName == dropByteString prefixLength refName
+                dropByteString prefixLength userName == dropByteString prefixLength refName                       &&
+                -- | Burned reference NFT needs to match the one in the own script UTxO
+                ownName == refName
 
-    checkUpdateName :: Bool
-    checkUpdateName = 
+    checkUpdateDescription :: Bool
+    checkUpdateDescription = 
                     let
-                        [(ownCs, Api.TokenName ownName, ownAm)] = V.flattenValue (V.noAdaValue ownValue)
+                        [(ownCs, Api.TokenName ownName, _)] = V.flattenValue (V.noAdaValue ownValue)
+                        [oldName, oldImage, oldId, (oldDescriptionKey, _)] = M.toList (metadata datumMetadata)
+                        [newName, newImage, newId, (newDescriptionKey, rawDescr)] = M.toList (metadata ownOutputDatumMetadata)
+                        Just descr = (PlutusTx.fromBuiltinData rawDescr) :: Maybe BuiltinByteString
                     in
                         -- | Input and output value of script UTxO stays the same.
-                        ownValue == ownOutputValue &&
-                        -- | Metadata stays immutable.
-                        metadata datumMetadata == metadata ownOutputDatumMetadata && version datumMetadata == version ownOutputDatumMetadata &&
+                        ownValue == ownOutputValue                                                                              &&
+                        -- | Metadata version stays the same.
+                        version datumMetadata == version ownOutputDatumMetadata                                                 &&
                         -- | User token belonging to reference NFT is provided.
-                        providesUserToken ownCs (Api.TokenName ("(222)" <> dropByteString prefixLength ownName)) 1
-                        -- Limit the size of identity TODO!!
-                        --lengthOfByteString (Builtins.serialiseData (PlutusTx.toBuiltinData (identity ownOutputDatumMetadata))) <= 2000
-
+                        providesUserToken ownCs (Api.TokenName ("(222)" <> dropByteString prefixLength ownName)) 1              &&
+                        -- | Keep primary metadata immutable
+                        oldName == newName && oldImage == newImage && oldId == newId && oldDescriptionKey == newDescriptionKey  && 
+                        -- | Limit size of description
+                        lengthOfByteString descr <= 256
 
 -- | A one shot minting policy to authenticate the control UTxOs with control NFTs ------------------------------------------------------------------
 -- Mint: Mint 100 control tokens in one batch and send them to their corresponding output address of the 'spendValidatorControl' script.
@@ -264,15 +263,15 @@ spendValidatorControl owner userCs isMinted action ctx = case action of
         ownOutputDatum :: Integer
         ownOutputValue :: V.Value
         (ownOutputDatum, ownOutputValue) = case getContinuingOutputs ctx of
-            [o] -> let Just h = txOutDatumHash o in case Api.findDatum h txInfo of
-                Just (Api.Datum d) -> case PlutusTx.fromBuiltinData d of
-                    Just m -> (m, txOutValue o)
+            [o] ->  let (Api.OutputDatum (Api.Datum d)) = txOutDatum o in 
+                      case PlutusTx.fromBuiltinData d of
+                        Just m -> (m, txOutValue o)
 
         checkIsMintable :: Bool
         checkIsMintable = 
                         let 
                             [(mintUserCs, Api.TokenName mintUserTn, _), _] = flattenValue txMint
-                            [(controlCs, Api.TokenName controlTn, _)] = flattenValue (V.noAdaValue ownValue)
+                            [(_, Api.TokenName controlTn, _)] = flattenValue (V.noAdaValue ownValue)
                         in
                             if isMinted == 0 
                                 then  ownValue == ownOutputValue && 
@@ -282,14 +281,17 @@ spendValidatorControl owner userCs isMinted action ctx = case action of
                                 else False
 
         checkDestroy :: Bool
-        checkDestroy = txInfo `txSignedBy` owner && isMinted == 1 && null (flattenValue txMint)
+        checkDestroy =  let 
+                            [(ownCs, ownTn, _)] = flattenValue (V.noAdaValue ownValue)
+                        in 
+                            txInfo `txSignedBy` owner && isMinted == 1 && V.assetClassValueOf txMint (V.assetClass ownCs ownTn) < 0
 
 -- | Utils ------------------------------------------------------------------
 
 {-# INLINEABLE scriptOutputsAtAddress #-}
-scriptOutputsAtAddress :: Api.Address -> Api.TxInfo -> [(Api.DatumHash, V.Value)]
+scriptOutputsAtAddress :: Api.Address -> Api.TxInfo -> [(Api.OutputDatum, V.Value)]
 scriptOutputsAtAddress address p =
-    let flt Api.TxOut{Api.txOutDatumHash=Just d, txOutAddress=address', txOutValue} | address == address' = Just (d, txOutValue)
+    let flt Api.TxOut{Api.txOutDatum=d, txOutAddress=address', txOutValue} | address == address' = Just (d, txOutValue)
         flt _ = Nothing
     in mapMaybe flt (Api.txInfoOutputs p)
 
@@ -353,24 +355,24 @@ spendAddrControl = Scripts.mkValidatorAddress spendInstanceControl
 
 mintSerializedMain :: String
 mintSerializedMain = C.unpack $ B16.encode $ serialiseToCBOR 
-                      ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unMintingPolicyScript mintInstanceMain) :: PlutusScript PlutusScriptV1)
+                      ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unMintingPolicyScript mintInstanceMain) :: PlutusScript PlutusScriptV2)
 
 mintSerializedControl :: String
 mintSerializedControl = C.unpack $ B16.encode $ serialiseToCBOR 
-                      ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unMintingPolicyScript mintInstanceControl) :: PlutusScript PlutusScriptV1)
+                      ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unMintingPolicyScript mintInstanceControl) :: PlutusScript PlutusScriptV2)
 
 spendSerializedControl :: String
 spendSerializedControl = C.unpack $ B16.encode $ serialiseToCBOR 
-                        ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unValidatorScript spendInstanceControl) :: PlutusScript PlutusScriptV1)
+                        ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unValidatorScript spendInstanceControl) :: PlutusScript PlutusScriptV2)
 
 spendSerializedReference :: String
 spendSerializedReference = C.unpack $ B16.encode $ serialiseToCBOR 
-                            ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unValidatorScript spendInstanceReference) :: PlutusScript PlutusScriptV1)
+                            ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unValidatorScript spendInstanceReference) :: PlutusScript PlutusScriptV2)
 
 -- | Lift ------------------------------------------------------------------
 
 PlutusTx.makeLift ''RefAction
-PlutusTx.makeIsDataIndexed ''RefAction [('Burn, 0), ('UpdateName, 1)]
+PlutusTx.makeIsDataIndexed ''RefAction [('Burn, 0), ('UpdateDescription, 1)]
 PlutusTx.makeLift ''Buyer
 PlutusTx.makeIsDataIndexed ''Buyer [('BerryHolder, 0), ('NoHolder, 1)]
 PlutusTx.makeLift ''ControlAction

@@ -5,7 +5,7 @@ import { Spinner } from "./spinner";
 type DialogProps = {
   isOpen: boolean;
   setIsOpen: React.Dispatch<React.SetStateAction<boolean>>;
-  onConnected: () => void;
+  onConnected: () => Promise<void>;
 };
 
 export const WalletSelector = ({
@@ -91,8 +91,8 @@ export const WalletSelector = ({
                                       window.location.reload()
                                     );
                                   }
+                                  await onConnected();
                                   setIsOpen(false);
-                                  onConnected();
                                 } catch (e) {}
                                 setLoading(false);
                               }}

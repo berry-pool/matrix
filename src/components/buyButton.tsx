@@ -11,9 +11,7 @@ export const BerryBuyButton = ({
   title,
 }: {
   setStart: React.Dispatch<React.SetStateAction<boolean>>;
-  setConfirmed: React.Dispatch<
-    React.SetStateAction<{ state: boolean; id: number }>
-  >;
+  setConfirmed: React.Dispatch<React.SetStateAction<boolean>>;
   title: string;
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
@@ -28,6 +26,21 @@ export const BerryBuyButton = ({
     }
     return true;
   };
+
+  // const a = async () => {
+  //   const Contract = await import("../contract/offchain");
+  //   // const txHash = await Contract.deploy();
+  //   // const txHash = await Contract.updateDescription(
+  //   //   0,
+  //   //   "Push it to the limits."
+  //   // );
+  //   const txHash = await Contract.redeemControl();
+  //   console.log(txHash);
+  // };
+
+  // React.useEffect(() => {
+  //   a();
+  // }, []);
 
   const preloadImage = (src: string) =>
     new Promise((r) => {
@@ -80,7 +93,7 @@ export const BerryBuyButton = ({
               setHidden(true);
               setTimeout(() => setStart(true), 1000);
               await Contract.awaitTx(txHash);
-              setConfirmed({ state: true, id });
+              setConfirmed(true);
             } catch (e) {
               console.log(e);
               if (!(e as any).code) {
