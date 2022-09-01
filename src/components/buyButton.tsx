@@ -34,8 +34,8 @@ export const BerryBuyButton = ({
   //   //   0,
   //   //   "Push it to the limits."
   //   // );
-  //   const txHash = await Contract.redeemControl();
-  //   console.log(txHash);
+  //   // const txHash = await Contract.redeemControl();
+  //   // console.log(txHash);
   // };
 
   // React.useEffect(() => {

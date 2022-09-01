@@ -15,6 +15,7 @@ import {
   SpendingValidator,
   toHex,
   TxHash,
+  Unit,
   UTxO,
 } from "lucid-cardano";
 import { decode } from "../utils/utils";
@@ -81,8 +82,8 @@ const assignedData = assigned.map((a) =>
   concat(new TextEncoder().encode(a.matrix), new TextEncoder().encode(a.berry))
 );
 
-const merkleTreeMetadata = await MerkleTree.new(metadataData);
-const merkleTreeAssigned = await MerkleTree.new(assignedData);
+const merkleTreeMetadata = new MerkleTree(metadataData);
+const merkleTreeAssigned = new MerkleTree(assignedData);
 
 //----- Create fake policy which imitates Berries (will be removed in production)
 
@@ -122,7 +123,6 @@ export const fakeMint = async (): Promise<TxHash> => {
 const name = (utf8: string): string => toHex(new TextEncoder().encode(utf8));
 const fromName = (hex: string): string =>
   new TextDecoder().decode(decode(new TextEncoder().encode(hex)));
-const label = (l: number) => "0" + l.toString(16).padStart(4, "0") + "0";
 
 // -- Endpoints ------------------------------------------------------------------
 
@@ -250,14 +250,14 @@ export const mint = async (
 
   const m = Data.fromJson(metadata[matrixId]);
   const d = metadataData[matrixId];
-  const proof = await merkleTreeMetadata.getProof(d);
+  const proof = merkleTreeMetadata.getProof(d);
 
   const hasBerry: boolean = !!berryUtxo;
 
   // only relevant if buyer actually holds a Berry and buys during the right time frame
   const berryD = assignedData[matrixId];
   const berryName = new TextEncoder().encode(assigned[matrixId].berry);
-  const berryProof = await merkleTreeAssigned.getProof(berryD);
+  const berryProof = merkleTreeAssigned.getProof(berryD);
 
   const mintRedeemer = Data.to(
     new Construct(0, [
@@ -296,8 +296,8 @@ export const mint = async (
     .applyIf(hasBerry, (tx) => {
       tx.collectFrom([berryUtxo!]);
     })
-    .validFrom(Date.now() - 100000) // TODO
-    .validTo(Date.now() + 100000) // TODO
+    .validFrom(Date.now() - contractDetails.txValidFromThreshold)
+    .validTo(Date.now() + contractDetails.txValidToThreshold)
     .mintAssets({
       [mainPolicyId + name(`(100)Matrix${matrixId}`)]: 1n,
       [mainPolicyId + name(`(222)Matrix${matrixId}`)]: 1n,

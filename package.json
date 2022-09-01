@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^1.6.6",
+    "@heroicons/react": "^2.0.10",
     "gatsby": "^4.20.0",
     "lucid-cardano": "^0.5.5",
     "react": "^18.1.0",

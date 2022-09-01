@@ -1,6 +1,6 @@
 export const contractDetails = {
   controlOref: {
-    txHash: "33af22ebdfafc2554675af9e3b9bd3c2d760c18439d8bd2b384abeb628843ea4",
+    txHash: "a2b988c4f540ace025f91d8045b8ae99cc3c8060159501ff9d2f5ff315b5e0dc",
     outputIndex: 50,
   },
   berryPolicyId: "a65e6e94d1a260dbc6c4d9319b45585fa54b83742a33a2c599df56b9",
@@ -11,5 +11,7 @@ export const contractDetails = {
   payeeAddress:
     "addr_test1vzmvs72wnfazvkv5gzjdpltee5rkgng4j9llzd5578m8ydgkp6edr",
   paymentAmount: 10000000n,
-  mintStart: 1661863648803,
+  mintStart: 1662047885635,
+  txValidFromThreshold: 100000,
+  txValidToThreshold: 2000000,
 };

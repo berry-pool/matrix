@@ -35,14 +35,14 @@ mainDetails = MainDetails {
                     ,   refAddress          = spendAddrReference
                     ,   payeeAddress        = Api.Address (Api.PubKeyCredential "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235") Nothing
                     ,   paymentAmount       = 10000000
-                    ,   mintStart           = 1661863648803
+                    ,   mintStart           = 1662047885635
                     }
 
 controlOwner :: Api.PubKeyHash
 controlOwner = "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235"
 
 controlOref :: Api.TxOutRef
-controlOref = Api.TxOutRef "33af22ebdfafc2554675af9e3b9bd3c2d760c18439d8bd2b384abeb628843ea4" 50
+controlOref = Api.TxOutRef "a2b988c4f540ace025f91d8045b8ae99cc3c8060159501ff9d2f5ff315b5e0dc" 50
 
 -- | Data and Redeemer ------------------------------------------------------------------
 

@@ -5,6 +5,7 @@ import DiscordLogo from "../images/github.png";
 import MatrixTitle from "../images/matrixTitle.svg";
 import Berry16 from "../images/berry16.jpeg";
 import { WalletSelector } from "../components/walletSelector";
+import { HelpDialog } from "../components/helpDialog";
 import { BerryBuyButton } from "../components/buyButton";
 import { UTxO } from "lucid-cardano";
 import { contractDetails } from "../contract/config";
@@ -19,7 +20,10 @@ const IndexPage = () => {
   const [start, setStart] = React.useState<boolean>(false);
   const [confirmed, setConfirmed] = React.useState<boolean>(false);
   const [final, setFinal] = React.useState<boolean>(false);
-  const [isOpenWalletSelector, setIsOpenWalletSelector] = React.useState(false);
+  const [isOpenWalletSelector, setIsOpenWalletSelector] =
+    React.useState<boolean>(false);
+  const [isOpenHelpDialog, setIsOpenHelpDialog] =
+    React.useState<boolean>(false);
   const [network, setNetwork] = React.useState<number>(1);
   const [selection, setSelection] = React.useState<{
     id: number;
@@ -69,14 +73,22 @@ const IndexPage = () => {
             </div>
           )}
           {!connected && (
-            <button
-              className="py-4 px-8 rounded-2xl text-white font-medium border-2 border-r-purple-500 border-t-purple-600 border-l-green-500 border-b-green-600"
-              onClick={() => {
-                setIsOpenWalletSelector(true);
-              }}
-            >
-              Connect Wallet
-            </button>
+            <>
+              <button
+                className="py-4 px-8 rounded-2xl text-white font-medium border-2 border-r-purple-500 border-t-purple-600 border-l-green-500 border-b-green-600"
+                onClick={() => {
+                  setIsOpenWalletSelector(true);
+                }}
+              >
+                Connect Wallet
+              </button>
+              <button
+                className="mt-6 text-white font-light text-sm"
+                onClick={() => setIsOpenHelpDialog(true)}
+              >
+                What am I doing here?
+              </button>
+            </>
           )}
           {connected &&
             !start &&
@@ -85,8 +97,13 @@ const IndexPage = () => {
                 <div className="text-white text-center w-[90%] max-w-md">
                   Matrix Berries are sold out.
                 </div>
-              ) : selection?.berryUtxo ||
-                Date.now() >= contractDetails.mintStart ? (
+              ) : (selection?.berryUtxo &&
+                  Date.now() <=
+                    contractDetails.mintStart -
+                      contractDetails.txValidToThreshold) ||
+                Date.now() >=
+                  contractDetails.mintStart +
+                    contractDetails.txValidFromThreshold ? (
                 <BerryBuyButton
                   setStart={setStart}
                   setConfirmed={setConfirmed}
@@ -95,12 +112,22 @@ const IndexPage = () => {
               ) : (
                 <div className="text-white text-center w-[90%] max-w-md">
                   Public sale has not started yet. In order to get a Matrix
-                  Berry now you need to be a Berry holder. If you already bought
-                  a Matrix Berry as holder then you have to wait for the public
-                  sale as well.
+                  Berry now you need to be a Berry holder (
+                  <b>
+                    until{" "}
+                    {new Date(
+                      contractDetails.mintStart -
+                        contractDetails.txValidToThreshold
+                    ).toLocaleString()}
+                  </b>
+                  ). If you already bought a Matrix Berry as holder then you
+                  have to wait for the public sale as well.
                   <div className="font-medium mt-6">Public sale starts at:</div>
                   <div className="font-bold text-xl mt-2">
-                    {new Date(contractDetails.mintStart).toLocaleString()}
+                    {new Date(
+                      contractDetails.mintStart +
+                        contractDetails.txValidFromThreshold
+                    ).toLocaleString()}
                   </div>
                 </div>
               )
@@ -137,6 +164,12 @@ const IndexPage = () => {
                 </div>
               </div>
             </a>
+            <button
+              className="ml-6 md:ml-10 text-white"
+              onClick={() => setIsOpenHelpDialog(true)}
+            >
+              Help
+            </button>
           </div>
         </div>
       </div>
@@ -151,6 +184,11 @@ const IndexPage = () => {
           setNetwork(network);
           setConnected(true);
         }}
+      />
+      <HelpDialog
+        isOpen={isOpenHelpDialog}
+        setIsOpen={setIsOpenHelpDialog}
+        contractDetails={contractDetails}
       />
     </>
   );
