@@ -395,6 +395,15 @@ export const redeemControl = async (): Promise<TxHash> => {
     )
   ).slice(0, 10);
 
+  // Tx hash taken from the inital deploy tx
+  const referenceScripts = await lucid.utxosByOutRef([{
+    txHash: contractDetails.referenceScriptsTxHash,
+    outputIndex: 0,
+  }, {
+    txHash: contractDetails.referenceScriptsTxHash,
+    outputIndex: 1,
+  }]);
+
   const controlRedeemer = Data.to(new Construct(1, []));
 
   const controlAssets: Assets = controlUtxos.reduce(
@@ -406,6 +415,9 @@ export const redeemControl = async (): Promise<TxHash> => {
   );
 
   const tx = await lucid.newTx().collectFrom(controlUtxos, controlRedeemer)
+    .applyIf(referenceScripts.length > 0, (tx) => {
+      tx.collectFrom(referenceScripts, Data.to(new Construct(1, [])));
+    })
     .mintAssets(controlAssets, controlRedeemer).addSigner(
       await lucid.wallet.address(),
     ).attachMintingPolicy(mintControl).attachSpendingValidator(spendControl)
