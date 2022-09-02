@@ -4,15 +4,18 @@ import metadata from "../data/metadata.json";
 import Berry16 from "../images/berry16.jpeg"; // Just an example for now TODO!
 //@ts-ignore
 import ParticleEffectButton from "react-particle-effect-button";
+import { UTxO } from "lucid-cardano";
 
 export const BerryBuyButton = ({
   setStart,
   setConfirmed,
   title,
+  selection,
 }: {
   setStart: React.Dispatch<React.SetStateAction<boolean>>;
   setConfirmed: React.Dispatch<React.SetStateAction<boolean>>;
   title: string;
+  selection: { id: number; berryUtxo: UTxO | null };
 }) => {
   const [loading, setLoading] = React.useState<boolean>(false);
   const [hidden, setHidden] = React.useState<boolean>(false);
@@ -29,12 +32,10 @@ export const BerryBuyButton = ({
 
   // const a = async () => {
   //   const Contract = await import("../contract/offchain");
+  //   // console.log(await Contract.getMetadata(28));
   //   // const txHash = await Contract.deploy();
-  //   // const txHash = await Contract.updateDescription(
-  //   //   0,
-  //   //   "Push it to the limits."
-  //   // );
-  //   // const txHash = await Contract.redeemControl();
+  //   // const txHash = await Contract.updateDescription(28, "WOWOWOW");
+  //   // // const txHash = await Contract.redeemControl();
   //   // console.log(txHash);
   // };
 
@@ -86,9 +87,10 @@ export const BerryBuyButton = ({
               await preloadImage(Berry16); // TODO
               const Contract = await import("../contract/offchain");
 
-              const [id, berryUtxo] = await Contract.getRandomAvailable();
-
-              const txHash = await Contract.mint(id, berryUtxo);
+              const txHash = await Contract.mint(
+                selection.id,
+                selection.berryUtxo
+              );
 
               setHidden(true);
               setTimeout(() => setStart(true), 1000);

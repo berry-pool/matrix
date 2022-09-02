@@ -231,15 +231,34 @@ export const deploy = async (): Promise<TxHash> => {
       { [controlPolicyId + name(`${i}`)]: 1n },
       Data.to(new Construct(0, [])),
     );
-    tx.payToContract(controlAddress, { inline: Data.to(0n) }, {
+    tx.payToContract(controlAddress, {
+      inline: Data.to(new Construct(0, [0n])),
+    }, {
       [controlPolicyId + name(`${i}`)]: 1n,
     });
   }
-  tx.collectFrom([controlUtxo]).attachSpendingValidator(mintControl);
+  tx.collectFrom([controlUtxo])
+    .attachSpendingValidator(mintControl);
 
   const finalTx = await tx.complete();
   const signedTx = await finalTx.sign().complete();
-  return signedTx.submit();
+  const txHash = await signedTx.submit();
+  console.log("Created control UTxOs", txHash);
+  console.log("Awaiting confirmation...");
+  await lucid.awaitTx(txHash);
+
+  const tx2 = await lucid.newTx().payToContract(
+    controlAddress,
+    { inline: Data.to(new Construct(1, [])), scriptRef: spendControl },
+    {},
+  )
+    .payToContract(
+      controlAddress,
+      { inline: Data.to(new Construct(1, [])), scriptRef: mintMain },
+      {},
+    ).complete();
+  const signedTx2 = await tx2.sign().complete();
+  return signedTx2.submit();
 };
 
 export const mint = async (
@@ -291,6 +310,15 @@ export const mint = async (
   const isMinted = Data.from(await lucid.datumOf(controlUtxo)) as bigint;
   if (isMinted === 1n) throw new Error("TokenExistsError");
 
+  // Tx hash taken from the inital deploy tx
+  const referenceScripts = await lucid.utxosByOutRef([{
+    txHash: contractDetails.referenceScriptsTxHash,
+    outputIndex: 0,
+  }, {
+    txHash: contractDetails.referenceScriptsTxHash,
+    outputIndex: 1,
+  }]);
+
   const tx = await lucid.newTx()
     .collectFrom([controlUtxo], controlRedeemer)
     .applyIf(hasBerry, (tx) => {
@@ -311,8 +339,9 @@ export const mint = async (
         ? contractDetails.paymentAmount / 2n
         : contractDetails.paymentAmount,
     })
-    .attachSpendingValidator(spendControl)
-    .attachMintingPolicy(mintMain)
+    .readFrom(referenceScripts)
+    // .attachMintingPolicy(mintMain)
+    // .attachSpendingValidator(spendControl)
     .complete();
 
   const signedTx = await tx.sign().complete();
@@ -333,13 +362,19 @@ export const burn = async (matrixId: number): Promise<TxHash> => {
   const refRedeemer = Data.to(new Construct(0, []));
   const burnRedeemer = Data.to(new Construct(1, []));
 
+  // Tx hash taken from the inital deploy tx
+  const referenceScripts = await lucid.utxosByOutRef([{
+    txHash: contractDetails.referenceScriptsTxHash,
+    outputIndex: 1,
+  }]);
+
   const tx = await lucid.newTx()
     .collectFrom([refNFTUtxo], refRedeemer)
     .mintAssets({
       [mainPolicyId + name(`(100)Matrix${matrixId}`)]: -1n,
       [mainPolicyId + name(`(222)Matrix${matrixId}`)]: -1n,
     }, burnRedeemer)
-    .attachMintingPolicy(mintMain)
+    .readFrom(referenceScripts)
     .attachSpendingValidator(spendReference)
     .complete();
 
@@ -391,7 +426,12 @@ export const updateDescription = async (
     mainPolicyId + name(`(100)Matrix${matrixId}`),
   );
 
+  const userTokenUtxo = (await lucid.wallet.getUtxos()).find((utxo) =>
+    !!utxo.assets[mainPolicyId + name(`(222)Matrix${matrixId}`)]
+  );
+
   if (!refNFTUtxo) throw new Error("NoUTxOError");
+  if (!userTokenUtxo) throw new Error("NoOwnershipUTxOError");
 
   const metadataDatum = Data.from(await lucid.datumOf(refNFTUtxo)) as Construct;
 
@@ -410,7 +450,11 @@ export const updateDescription = async (
   const tx = await lucid.newTx().collectFrom(
     [refNFTUtxo],
     Data.to(new Construct(1, [])),
-  ).payToContract(referenceAddress, Data.to(metadataDatum), refNFTUtxo.assets)
+  ).collectFrom([userTokenUtxo]).payToContract(
+    referenceAddress,
+    Data.to(metadataDatum),
+    refNFTUtxo.assets,
+  )
     .attachSpendingValidator(spendReference)
     .complete();
   const signedTx = await tx.sign().complete();

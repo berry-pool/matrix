@@ -42,7 +42,7 @@ controlOwner :: Api.PubKeyHash
 controlOwner = "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235"
 
 controlOref :: Api.TxOutRef
-controlOref = Api.TxOutRef "a2b988c4f540ace025f91d8045b8ae99cc3c8060159501ff9d2f5ff315b5e0dc" 50
+controlOref = Api.TxOutRef "a99c033f38fa6abe85ecf2b034842c2fe2804420a9326154be9560bc9fdceac2" 50
 
 -- | Data and Redeemer ------------------------------------------------------------------
 
@@ -70,6 +70,8 @@ data MainAction = MintNFT MT.Proof Buyer | BurnNFT
 data RefAction = Burn | UpdateDescription
 
 data ControlAction = Mint | Destroy
+
+data ControlDatum = MintStatus Integer | DeployScripts
 
 -- | The primary minting policy for the NFT collection ------------------------------------------------------------------
 -- MintNFT: Mints a pair of user token and reference NFT according to CIP-0068.
@@ -205,13 +207,13 @@ spendValidatorReference datumMetadata action ctx = case action of
                         Just descr = (PlutusTx.fromBuiltinData rawDescr) :: Maybe BuiltinByteString
                     in
                         -- | Input and output value of script UTxO stays the same.
-                        ownValue == ownOutputValue                                                                              &&
+                        V.noAdaValue ownValue == V.noAdaValue ownOutputValue                                                    &&
                         -- | Metadata version stays the same.
                         version datumMetadata == version ownOutputDatumMetadata                                                 &&
                         -- | User token belonging to reference NFT is provided.
                         providesUserToken ownCs (Api.TokenName ("(222)" <> dropByteString prefixLength ownName)) 1              &&
                         -- | Keep primary metadata immutable
-                        oldName == newName && oldImage == newImage && oldId == newId && oldDescriptionKey == newDescriptionKey  && 
+                        oldName == newName && oldImage == newImage && oldId == newId && oldDescriptionKey == newDescriptionKey  &&
                         -- | Limit size of description
                         lengthOfByteString descr <= 256
 
@@ -238,53 +240,58 @@ mintValidatorControl oref action ctx = case action of
 
 
 -- | The spending validator that checks for uniqueness of NFTs ------------------------------------------------------------------
--- Mint: Initialize 100 UTxOs at this script address with Datum set to 0 and lock in each the corresponding control NFT from the 'mintValidatorControl' minting policy.
--- Destroy: If the UTxO is moved and the Datum is set to 1, we are allowed to destroy the UTxO again in order to redeem the min ADA.
+-- Datum MintStatus:
+--  Mint: Initialize 100 UTxOs at this script address with Datum set to 0 and lock in each the corresponding control NFT from the 'mintValidatorControl' minting policy.
+--  Destroy: If the UTxO is moved and the Datum is set to 1, we are allowed to destroy the UTxO again in order to redeem the min ADA.
+-- Datum DeployScripts: Deploy other necessary scripts to reduce minting costs, which can be redeemed again at the end. 
 {-# INLINEABLE spendValidatorControl #-}
-spendValidatorControl :: Api.PubKeyHash -> Api.CurrencySymbol -> Integer -> ControlAction -> Api.ScriptContext -> Bool
-spendValidatorControl owner userCs isMinted action ctx = case action of
-    Mint    -> checkIsMintable
-    Destroy -> checkDestroy
-    where
-        txInfo :: Api.TxInfo
-        txInfo = Api.scriptContextTxInfo ctx
+spendValidatorControl :: Api.PubKeyHash -> Api.CurrencySymbol -> ControlDatum -> ControlAction -> Api.ScriptContext -> Bool
+spendValidatorControl owner userCs datum action ctx = case datum of
+  DeployScripts       -> txInfo `txSignedBy` owner
+  MintStatus isMinted -> case action of
+    Mint    -> checkIsMintable isMinted
+    Destroy -> checkDestroy isMinted
+  where
+      txInfo :: Api.TxInfo
+      txInfo = Api.scriptContextTxInfo ctx
 
-        txMint :: V.Value
-        txMint = Api.txInfoMint txInfo
+      txMint :: V.Value
+      txMint = Api.txInfoMint txInfo
 
-        ownValue :: V.Value
-        ownValue =  let Just i = Api.findOwnInput ctx
-                        out = txInInfoResolved i
-                    in txOutValue out
+      ownValue :: V.Value
+      ownValue =  let Just i = Api.findOwnInput ctx
+                      out = txInInfoResolved i
+                  in txOutValue out
 
-        prefixLength :: Integer
-        prefixLength = 11 -- label + 'matrix' == 11 bytes
+      prefixLength :: Integer
+      prefixLength = 11 -- label + 'matrix' == 11 bytes
 
-        ownOutputDatum :: Integer
-        ownOutputValue :: V.Value
-        (ownOutputDatum, ownOutputValue) = case getContinuingOutputs ctx of
-            [o] ->  let (Api.OutputDatum (Api.Datum d)) = txOutDatum o in 
-                      case PlutusTx.fromBuiltinData d of
-                        Just m -> (m, txOutValue o)
+      ownOutputDatum :: Integer
+      ownOutputValue :: V.Value
+      (ownOutputDatum, ownOutputValue) = case getContinuingOutputs ctx of
+          [o] ->  let (Api.OutputDatum (Api.Datum d)) = txOutDatum o in 
+                    case PlutusTx.fromBuiltinData d of
+                      Just m -> (m, txOutValue o)
 
-        checkIsMintable :: Bool
-        checkIsMintable = 
-                        let 
-                            [(mintUserCs, Api.TokenName mintUserTn, _), _] = flattenValue txMint
-                            [(_, Api.TokenName controlTn, _)] = flattenValue (V.noAdaValue ownValue)
-                        in
-                            if isMinted == 0 
-                                then  ownValue == ownOutputValue && 
-                                      mintUserCs == userCs && 
-                                      dropByteString prefixLength mintUserTn == controlTn && 
-                                      ownOutputDatum == 1
-                                else False
+      checkIsMintable :: Integer -> Bool
+      checkIsMintable isMinted = 
+                      let 
+                          [(mintUserCs, Api.TokenName mintUserTn, _), _] = flattenValue txMint
+                          [(_, Api.TokenName controlTn, _)] = flattenValue (V.noAdaValue ownValue)
+                      in
+                          if isMinted == 0 
+                              then V.noAdaValue ownValue == V.noAdaValue ownOutputValue && 
+                                    mintUserCs == userCs && 
+                                    dropByteString prefixLength mintUserTn == controlTn && 
+                                    ownOutputDatum == 1
+                              else False
 
-        checkDestroy :: Bool
-        checkDestroy =  let 
-                            [(ownCs, ownTn, _)] = flattenValue (V.noAdaValue ownValue)
-                        in 
-                            txInfo `txSignedBy` owner && isMinted == 1 && V.assetClassValueOf txMint (V.assetClass ownCs ownTn) < 0
+      checkDestroy :: Integer -> Bool
+      checkDestroy isMinted =  
+                      let 
+                          [(ownCs, ownTn, _)] = flattenValue (V.noAdaValue ownValue)
+                      in 
+                          txInfo `txSignedBy` owner && isMinted == 1 && V.assetClassValueOf txMint (V.assetClass ownCs ownTn) < 0
 
 -- | Utils ------------------------------------------------------------------
 
@@ -377,6 +384,8 @@ PlutusTx.makeLift ''Buyer
 PlutusTx.makeIsDataIndexed ''Buyer [('BerryHolder, 0), ('NoHolder, 1)]
 PlutusTx.makeLift ''ControlAction
 PlutusTx.makeIsDataIndexed ''ControlAction [('Mint, 0), ('Destroy, 1)]
+PlutusTx.makeLift ''ControlDatum
+PlutusTx.makeIsDataIndexed ''ControlDatum [('MintStatus, 0), ('DeployScripts, 1)]
 PlutusTx.makeLift ''DatumMetadata
 PlutusTx.makeIsDataIndexed ''DatumMetadata [('DatumMetadata, 0)]
 PlutusTx.makeLift ''MainDetails

@@ -108,6 +108,7 @@ const IndexPage = () => {
                   setStart={setStart}
                   setConfirmed={setConfirmed}
                   title={`Buy for ${selection?.berryUtxo ? 5 : 10} ADA`}
+                  selection={selection!}
                 />
               ) : (
                 <div className="text-white text-center w-[90%] max-w-md">
