@@ -32,7 +32,7 @@ const IndexPage = () => {
 
   return (
     <>
-      <div className="w-screen h-screen bg-purple-800 relative overflow-hidden">
+      <div className="w-screen h-screen bg-[#782AC9] relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full">
           {start && (
             //@ts-ignore

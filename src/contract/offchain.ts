@@ -226,7 +226,7 @@ export const deploy = async (): Promise<TxHash> => {
   if (!controlUtxo) throw new Error("NoUTxOError");
 
   const tx = lucid.newTx();
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 100; i++) {
     tx.mintAssets(
       { [controlPolicyId + name(`${i}`)]: 1n },
       Data.to(new Construct(0, [])),
@@ -340,8 +340,6 @@ export const mint = async (
         : contractDetails.paymentAmount,
     })
     .readFrom(referenceScripts)
-    // .attachMintingPolicy(mintMain)
-    // .attachSpendingValidator(spendControl)
     .complete();
 
   const signedTx = await tx.sign().complete();

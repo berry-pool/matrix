@@ -33,10 +33,10 @@ export const BerryBuyButton = ({
   // const a = async () => {
   //   const Contract = await import("../contract/offchain");
   //   // console.log(await Contract.getMetadata(28));
-  //   // const txHash = await Contract.deploy();
+  //   const txHash = await Contract.deploy();
   //   // const txHash = await Contract.updateDescription(28, "WOWOWOW");
   //   // // const txHash = await Contract.redeemControl();
-  //   // console.log(txHash);
+  //   console.log(txHash);
   // };
 
   // React.useEffect(() => {
