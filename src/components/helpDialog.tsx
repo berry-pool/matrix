@@ -56,12 +56,12 @@ export const HelpDialog = ({
                     <Disclosure as="div">
                       {({ open }) => (
                         <>
-                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-violet-100 px-4 py-2 text-left text-sm font-medium text-violet-900 hover:bg-violet-200 focus:outline-none focus-visible:ring focus-visible:ring-violet-500 focus-visible:ring-opacity-75">
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
                             <span>Why Matrix Berries?</span>
                             <ChevronUpIcon
                               className={`${
                                 open ? "rotate-180 transform" : ""
-                              } h-5 w-5 text-violet-500`}
+                              } h-5 w-5 text-gray-500`}
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
@@ -83,12 +83,12 @@ export const HelpDialog = ({
                     <Disclosure as="div" className="mt-2">
                       {({ open }) => (
                         <>
-                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-violet-100 px-4 py-2 text-left text-sm font-medium text-violet-900 hover:bg-violet-200 focus:outline-none focus-visible:ring focus-visible:ring-violet-500 focus-visible:ring-opacity-75">
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
                             <span>How much does one cost?</span>
                             <ChevronUpIcon
                               className={`${
                                 open ? "rotate-180 transform" : ""
-                              } h-5 w-5 text-violet-500`}
+                              } h-5 w-5 text-gray-500`}
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
@@ -102,12 +102,12 @@ export const HelpDialog = ({
                     <Disclosure as="div" className="mt-2">
                       {({ open }) => (
                         <>
-                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-violet-100 px-4 py-2 text-left text-sm font-medium text-violet-900 hover:bg-violet-200 focus:outline-none focus-visible:ring focus-visible:ring-violet-500 focus-visible:ring-opacity-75">
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
                             <span>How many are there?</span>
                             <ChevronUpIcon
                               className={`${
                                 open ? "rotate-180 transform" : ""
-                              } h-5 w-5 text-violet-500`}
+                              } h-5 w-5 text-gray-500`}
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
@@ -119,12 +119,12 @@ export const HelpDialog = ({
                     <Disclosure as="div" className="mt-2">
                       {({ open }) => (
                         <>
-                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-violet-100 px-4 py-2 text-left text-sm font-medium text-violet-900 hover:bg-violet-200 focus:outline-none focus-visible:ring focus-visible:ring-violet-500 focus-visible:ring-opacity-75">
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
                             <span>When does the sale start?</span>
                             <ChevronUpIcon
                               className={`${
                                 open ? "rotate-180 transform" : ""
-                              } h-5 w-5 text-violet-500`}
+                              } h-5 w-5 text-gray-500`}
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
@@ -150,12 +150,12 @@ export const HelpDialog = ({
                     <Disclosure as="div" className="mt-2">
                       {({ open }) => (
                         <>
-                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-violet-100 px-4 py-2 text-left text-sm font-medium text-violet-900 hover:bg-violet-200 focus:outline-none focus-visible:ring focus-visible:ring-violet-500 focus-visible:ring-opacity-75">
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
                             <span>What wallet can I use?</span>
                             <ChevronUpIcon
                               className={`${
                                 open ? "rotate-180 transform" : ""
-                              } h-5 w-5 text-violet-500`}
+                              } h-5 w-5 text-gray-500`}
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
@@ -170,12 +170,12 @@ export const HelpDialog = ({
                     <Disclosure as="div" className="mt-2">
                       {({ open }) => (
                         <>
-                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-violet-100 px-4 py-2 text-left text-sm font-medium text-violet-900 hover:bg-violet-200 focus:outline-none focus-visible:ring focus-visible:ring-violet-500 focus-visible:ring-opacity-75">
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
                             <span>Waiting for confirmation shows forever?</span>
                             <ChevronUpIcon
                               className={`${
                                 open ? "rotate-180 transform" : ""
-                              } h-5 w-5 text-violet-500`}
+                              } h-5 w-5 text-gray-500`}
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
