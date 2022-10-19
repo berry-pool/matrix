@@ -69,13 +69,14 @@ export const HelpDialog = ({
                             metadata standard as well as how we could mint NFTs
                             in a decentralized way making use of Plutus
                             validators. There is no reliance on any central
-                            party, the complete process runs autonomously. The
+                            party, the whole process runs autonomously. The
                             advantage of this approach is that mismints are
-                            impossible since the full logic is embedded in the
-                            contract. There aren't any refunds or extra costs
-                            involved in case of unsuccessful mints. Only
+                            impossible since the full logic is incorporated in
+                            the contract. There aren't any refunds or extra
+                            costs involved in case of unsuccessful mints. Only
                             successful transactions that actually mint the NFT
-                            get on the chain. The entire code is open-source.
+                            make it onto the chain. The entire code is
+                            open-source.
                           </Disclosure.Panel>
                         </>
                       )}
@@ -182,10 +183,10 @@ export const HelpDialog = ({
                             If you experience long waiting times while the
                             animation is shown, it's possible your transaction
                             was already rejected from the network. There is no
-                            guarantee you will receive the Matrix Berry as
-                            someone else could have already mint the same Matrix
-                            Berry slightly before you. But no costs are incurred
-                            in that process.
+                            guarantee you will receive the Matrix Berry since
+                            someone else could have already minted the same
+                            Matrix Berry shortly before you. But no costs are
+                            incurred in that process.
                           </Disclosure.Panel>
                         </>
                       )}

@@ -59,4 +59,8 @@ executable contract
                  , text
                  , plutus-script-utils
                  , plutus-merkle-tree
+                 , crc
+                 , ghc-prim
+                 , binary
+                 , bits-bytestring
     other-modules: Onchain

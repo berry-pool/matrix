@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeApplications, AllowAmbiguousTypes #-}
+
 module Onchain (mintSerializedMain, spendSerializedControl, mintSerializedControl, spendSerializedReference) where
 
 import Cardano.Api
@@ -19,10 +21,163 @@ import Ledger.Value as V
 import qualified PlutusTx
 import PlutusTx.Prelude
 import Prelude (String)
+import qualified Prelude as Haskell
 import qualified Plutus.MerkleTree as MT
 import Data.String (IsString)
 import qualified PlutusTx.Builtins as Builtins
 import qualified PlutusTx.AssocMap as M
+import qualified Data.ByteString as BS
+
+import Data.Digest.CRC as CRC
+import Data.Digest.CRC8 as CRC
+import qualified Data.Bits as BIT
+import qualified Data.Bits.ByteString as BIT
+import Numeric (readHex)
+import Data.Word
+import Data.Int
+import qualified Data.ByteString.Char8 as CH8
+import qualified Data.ByteString.Builder as BLD
+import qualified Data.Binary.Builder as BIN
+
+-- | Labels (CIP-0067) ------------------------------------------------------------------
+
+class HexBuilder a where
+  buildHex :: a -> BIN.Builder
+
+instance HexBuilder Word8 where
+  buildHex = BLD.word8Hex
+
+-- | Show a bytestring as hex
+prettyPrint :: BS.ByteString -> BS.ByteString
+prettyPrint = builderToBS . BLD.byteStringHex
+
+-- | Convert a builder type to a bytestring
+builderToBS :: BLD.Builder -> BS.ByteString
+builderToBS = LBS.toStrict . BLD.toLazyByteString
+
+-- | Convert Int16 to their big endian two byte representation
+intLabel :: Int16 -> BS.ByteString
+intLabel = builderToBS . BLD.int16BE
+
+-- | returns in hex
+checksum :: BS.ByteString -> BS.ByteString
+checksum m = (builderToBS . buildHex . crcWord) (CRC.digest m :: CRC8)
+
+-- | Get the asset label for a given Int16 as a bytestring.
+getLabel :: Int16 -> BS.ByteString
+getLabel n =  let label = BLD.int16BE $ Haskell.fromIntegral n
+                  checksumLabel = (Haskell.fst . Haskell.head . readHex . CH8.unpack . checksum  . builderToBS) label
+                  checkSum = BLD.int8 $ Haskell.fromIntegral checksumLabel
+              in BIT.shift (builderToBS $ label Haskell.<> checkSum Haskell.<> BLD.int8 0) (-4)
+
+toLabel :: Int16 -> Label
+toLabel n = toBuiltin $ getLabel n
+
+
+labelLength :: Integer
+labelLength = 4 -- 4 bytes
+
+-- TEST
+
+-- import qualified Plutus.V1.Ledger.Contexts as Api1
+-- import qualified Plutus.V1.Ledger.Api as Api1
+-- import qualified Plutus.Script.Utils.V1.Scripts as Scripts1
+-- import qualified Plutus.Script.Utils.V1.Typed.Scripts.Validators as Scripts1
+-- import qualified Plutus.Script.Utils.V1.Typed.Scripts.MonetaryPolicies as Scripts1
+
+-- instance Eq SwapScriptContext where
+--   {-# INLINABLE (==) #-}
+--   SwapScriptContext a b == SwapScriptContext c d = a == c && b == d
+
+-- instance Eq SwapScriptPurpose where
+--   {-# INLINABLE (==) #-}
+--   AMinting a == AMinting b = a == b
+--   ASpending a == ASpending b = a == b
+
+-- -- instance Eq AuctionTxInfo where
+-- --     {-# INLINABLE (==) #-}
+-- --     AuctionTxInfo i o f m c w r s d tid == AuctionTxInfo i' o' f' m' c' w' r' s' d' tid' =
+-- --         -- i == i' && o == o' && f == f' && m == m' && 
+-- --         c == c' && w == w' && r == r' && s == s' && d == d' && tid == tid'
+
+
+-- data SwapScriptContext = SwapScriptContext
+--   { sScriptContextTxInfo :: AuctionTxInfo,
+--     sScriptContextPurpose :: SwapScriptPurpose
+--   }
+
+-- data SwapScriptPurpose = AMinting CurrencySymbol | ASpending TxOutRef
+
+-- -- data AuctionTxInInfo = AuctionTxInInfo
+-- --   { atxInInfoOutRef           :: TxOutRef
+-- --   , atxInInfoResolved         :: AuctionTxOut
+-- --   }
+
+-- data AuctionTxInfo = AuctionTxInfo
+--   { atxInfoInputs             :: [Api.TxInInfo]
+--   , atxInfoReferenceInputs     :: [Api.TxInInfo] 
+--   , atxInfoOutputs            :: [Api.TxOut]
+--   , atxInfoFee                :: V.Value
+--   , atxInfoMint               :: V.Value
+--   , atxInfoDCert              :: [Api.DCert]
+--   , atxInfoWdrl               :: Api.Map Api.StakingCredential Integer
+--   , atxInfoValidRange         :: Api.POSIXTimeRange
+--   , atxInfoSignatories        :: [Api.PubKeyHash]
+--   , txInfoRedeemers           :: Api.Map Api.ScriptPurpose Api.Redeemer
+--   , atxInfoData               :: Api.Map Api.DatumHash Api.Datum
+--   , atxInfoId                 :: Api.TxId
+--   }
+
+-- PlutusTx.makeLift ''SwapScriptContext
+-- -- PlutusTx.makeIsDataIndexed ''SwapScriptContext [('SwapScriptContext, 0)]
+-- PlutusTx.unstableMakeIsData ''SwapScriptContext
+-- PlutusTx.makeLift ''SwapScriptPurpose
+-- PlutusTx.unstableMakeIsData ''SwapScriptPurpose
+-- PlutusTx.makeLift ''AuctionTxInfo
+-- PlutusTx.unstableMakeIsData ''AuctionTxInfo
+
+
+
+
+-- data TestAction = Mint1 | Burn1
+-- PlutusTx.unstableMakeIsData ''TestAction
+-- PlutusTx.makeLift ''TestAction
+
+
+-- {-# INLINEABLE mintTestValidator #-}
+-- mintTestValidator :: Integer -> Api.ScriptContext -> Bool
+-- mintTestValidator i ctx = i > 1000
+--   where
+--     txInfo :: Api.TxInfo
+--     txInfo = Api.scriptContextTxInfo ctx
+
+
+
+-- mintTestInstance :: Scripts.MintingPolicy
+-- mintTestInstance =
+--   Api.mkMintingPolicyScript $
+--     $$(PlutusTx.compile [|| wrap ||])
+--       where
+--         wrap = Scripts.mkUntypedMintingPolicy $ mintTestValidator
+--         -- wrap  :: (Api1.FromData a, Api1.FromData b) => (a -> b -> Bool)
+--         --   -> BuiltinData
+--         --   -> BuiltinData
+--         --   -> ()
+--         -- wrap f b c
+--         --   = check
+--         --     ( f
+--         --         (let Just f = PlutusTx.fromBuiltinData b in f) 
+--         --         (let Just e = PlutusTx.fromBuiltinData c in e)
+--         --     )
+--         -- wrap2 = wrap mintTestValidator
+
+
+-- mintSerializedTest :: String
+-- mintSerializedTest = C.unpack $ B16.encode $ serialiseToCBOR 
+--                       ((PlutusScriptSerialised $ SBS.toShort . LBS.toStrict $ serialise $ Api.unMintingPolicyScript mintTestInstance) :: PlutusScript PlutusScriptV1)
+
+
+--
 
 -- | Config ------------------------------------------------------------------
 
@@ -30,8 +185,8 @@ mainDetails :: MainDetails
 mainDetails = MainDetails {
                         controlCs           = mintSymbolControl
                     ,   berryCs             = "a65e6e94d1a260dbc6c4d9319b45585fa54b83742a33a2c599df56b9"
-                    ,   merkleRootMetadata  = "3edc812d9e88c44f9d7d6f19bfa5402c6a5e7451c380fc40779612aba3191292"
-                    ,   merkleRootAssigned  = "71be0c95e03f2bb5274c62ff3acb3c92c264f8aa0732dbfecc05657854563e49"
+                    ,   merkleRootMetadata  = "3f86716d4102aec464990141842510ac0c6f59b1c08b88324d7ed79b0311e160"
+                    ,   merkleRootAssigned  = "c237972884731f38919d629ae8a18c45badd0472f6d59984ba57fb1faf0e1330"
                     ,   refAddress          = spendAddrReference
                     ,   payeeAddress        = Api.Address (Api.PubKeyCredential "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235") Nothing
                     ,   paymentAmount       = 10000000
@@ -39,12 +194,14 @@ mainDetails = MainDetails {
                     }
 
 controlOwner :: Api.PubKeyHash
-controlOwner = "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235"
+controlOwner = "de467543f7cee91138085797279a458e74020c30be0b325ceada11d2"
 
 controlOref :: Api.TxOutRef
-controlOref = Api.TxOutRef "fa2f6bc91d3b5d97501904b870fdf7a7678bbb50044d45c475923f428cc95345" 2
+controlOref = Api.TxOutRef "0fdcd6f8b920ab0afe719463cb2cc8418a202be81833a5dde1495a818324d8c0" 4
 
 -- | Data and Redeemer ------------------------------------------------------------------
+
+type Label = BuiltinByteString
 
 type Metadata = M.Map BuiltinData BuiltinData
 data DatumMetadata = DatumMetadata {
@@ -77,8 +234,8 @@ data ControlDatum = MintStatus Integer | DeployScripts
 -- MintNFT: Mints a pair of user token and reference NFT according to CIP-0068.
 -- BurnNFT: Destroys this pair again. Only the holder of the NFT is allowed to proceed with that action.
 {-# INLINEABLE mintValidatorMain #-}
-mintValidatorMain :: MainDetails -> MainAction -> Api.ScriptContext -> Bool
-mintValidatorMain c action ctx = case action of
+mintValidatorMain :: (Label, Label) -> MainDetails -> MainAction -> Api.ScriptContext -> Bool
+mintValidatorMain (label100, label222) c action ctx = case action of
   MintNFT metadataMerkleProof buyer -> checkMintNFT metadataMerkleProof buyer
   BurnNFT                           -> checkBurnNFT
  
@@ -95,9 +252,6 @@ mintValidatorMain c action ctx = case action of
     ownSymbol :: Api.CurrencySymbol
     ownSymbol = Api.ownCurrencySymbol ctx
 
-    prefixLength :: Integer
-    prefixLength = 5
-
     checkMintNFT :: MT.Proof -> Buyer -> Bool
     checkMintNFT merkleProofMetadata buyer =
                             let 
@@ -109,7 +263,7 @@ mintValidatorMain c action ctx = case action of
                                 -- | Creating data for metadata merkle tree (combination of asset names and datum hash from reference output).
                                 merkleEntryMetadata = userName <> refName <> refOutName <> refOutDatumHash
                             in 
-                                -- | Berry holders have the privlige to buy before the 'public' mint starts. They are assigned a certain Matrix Berry which they can buy for half the price.
+                                -- | Berry holders have the privilege to buy before the 'public' mint starts. They are assigned a certain Matrix Berry which they can buy for half the price.
                                 (case buyer of
                                     BerryHolder berryName merkleProofAssigned   ->  -- | Only privileges before public sale.
                                                                                     Api.to (mintStart c) `I.contains` Api.txInfoValidRange txInfo                                                           &&
@@ -145,16 +299,16 @@ mintValidatorMain c action ctx = case action of
                     -1 == userAm && -1 == refAm &&
                     ownSymbol == userCs && ownSymbol == refCs &&
                     -- | Matching asset names.
-                    takeByteString prefixLength userName == "(222)" && takeByteString prefixLength refName == "(100)" &&
-                    dropByteString prefixLength userName == dropByteString prefixLength refName
+                    takeByteString labelLength userName == label222 && takeByteString labelLength refName == label100 &&
+                    dropByteString labelLength userName == dropByteString labelLength refName
 
 
 -- | The spending validator that holds the reference NFTs including the metadata ------------------------------------------------------------------
 -- Burn: Destroys the UTxO in order to redeem the min ADA. This is only possible if the locked reference NFT and the belonging user token are burned within the same transaction.
 -- UpdateName: Allows the holder of the user token to update the name in the metadata of the reference UTxO
 {-# INLINEABLE spendValidatorReference #-}
-spendValidatorReference :: DatumMetadata -> RefAction -> Api.ScriptContext -> Bool
-spendValidatorReference datumMetadata action ctx = case action of
+spendValidatorReference :: (Label, Label) -> DatumMetadata -> RefAction -> Api.ScriptContext -> Bool
+spendValidatorReference (label100, label222) datumMetadata action ctx = case action of
   Burn              -> checkBurn
   UpdateDescription -> checkUpdateDescription
   where
@@ -168,9 +322,6 @@ spendValidatorReference datumMetadata action ctx = case action of
     ownValue =  let Just i = Api.findOwnInput ctx
                     out = txInInfoResolved i
                 in txOutValue out
-
-    prefixLength :: Integer
-    prefixLength = 5
 
     ownOutputDatumMetadata :: DatumMetadata
     ownOutputValue :: V.Value
@@ -193,8 +344,8 @@ spendValidatorReference datumMetadata action ctx = case action of
                 -1 == userAm && -1 == refAm &&
                 ownCs == userCs && ownCs == refCs && 
                 -- | Matching asset names.
-                takeByteString prefixLength userName == "(222)" && takeByteString prefixLength refName == "(100)" &&
-                dropByteString prefixLength userName == dropByteString prefixLength refName                       &&
+                takeByteString labelLength userName == label222 && takeByteString labelLength refName == label100 &&
+                dropByteString labelLength userName == dropByteString labelLength refName                       &&
                 -- | Burned reference NFT needs to match the one in the own script UTxO
                 ownName == refName
 
@@ -211,7 +362,7 @@ spendValidatorReference datumMetadata action ctx = case action of
                         -- | Metadata version stays the same.
                         version datumMetadata == version ownOutputDatumMetadata                                                 &&
                         -- | User token belonging to reference NFT is provided.
-                        providesUserToken ownCs (Api.TokenName ("(222)" <> dropByteString prefixLength ownName)) 1              &&
+                        providesUserToken ownCs (Api.TokenName (label222 <> dropByteString labelLength ownName)) 1              &&
                         -- | Keep primary metadata immutable
                         oldName == newName && oldImage == newImage && oldId == newId && oldDescriptionKey == newDescriptionKey  &&
                         -- | Limit size of description
@@ -264,7 +415,7 @@ spendValidatorControl owner userCs datum action ctx = case datum of
                   in txOutValue out
 
       prefixLength :: Integer
-      prefixLength = 11 -- label + 'matrix' == 11 bytes
+      prefixLength = labelLength + 6  -- label + 'matrix' == 11 bytes
 
       ownOutputDatum :: Integer
       ownOutputValue :: V.Value
@@ -318,19 +469,19 @@ valuePaidToAddress ptx address = mconcat (pubKeyOutputsAtAddress address ptx)
 mintInstanceMain :: Scripts.MintingPolicy
 mintInstanceMain =
   Api.mkMintingPolicyScript $
-    $$(PlutusTx.compile [|| wrap ||]) `PlutusTx.applyCode` PlutusTx.liftCode mainDetails
+    $$(PlutusTx.compile [|| wrap ||])`PlutusTx.applyCode` PlutusTx.liftCode ((toLabel 100, toLabel 222)) `PlutusTx.applyCode` PlutusTx.liftCode mainDetails
       where
-        wrap c = Scripts.mkUntypedMintingPolicy $ mintValidatorMain c
+        wrap l c = Scripts.mkUntypedMintingPolicy $ mintValidatorMain l c
 
 mintSymbolMain :: Api.CurrencySymbol
 mintSymbolMain = Scripts.scriptCurrencySymbol mintInstanceMain
 
 spendInstanceReference :: Scripts.Validator
 spendInstanceReference =
-  Api.mkValidatorScript
-    $$(PlutusTx.compile [||wrap||])
+  Api.mkValidatorScript $
+    $$(PlutusTx.compile [||wrap||]) `PlutusTx.applyCode` PlutusTx.liftCode ((toLabel 100, toLabel 222))
   where
-    wrap = Scripts.mkUntypedValidator spendValidatorReference
+    wrap l = Scripts.mkUntypedValidator $ spendValidatorReference l
 
 spendAddrReference :: Api.Address
 spendAddrReference = Scripts.mkValidatorAddress spendInstanceReference
