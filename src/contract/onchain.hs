@@ -185,7 +185,7 @@ mainDetails :: MainDetails
 mainDetails = MainDetails {
                         controlCs           = mintSymbolControl
                     ,   berryCs             = "a65e6e94d1a260dbc6c4d9319b45585fa54b83742a33a2c599df56b9"
-                    ,   merkleRootMetadata  = "3f86716d4102aec464990141842510ac0c6f59b1c08b88324d7ed79b0311e160"
+                    ,   merkleRootMetadata  = "f77dd3546d8f0fc78d869394c3fbd0f3bb09a9a1988896325f2255fec3fc6fad"
                     ,   merkleRootAssigned  = "c237972884731f38919d629ae8a18c45badd0472f6d59984ba57fb1faf0e1330"
                     ,   refAddress          = spendAddrReference
                     ,   payeeAddress        = Api.Address (Api.PubKeyCredential "b6c8794e9a7a26599440a4d0fd79cd07644d15917ff13694f1f67235") Nothing
@@ -197,7 +197,7 @@ controlOwner :: Api.PubKeyHash
 controlOwner = "de467543f7cee91138085797279a458e74020c30be0b325ceada11d2"
 
 controlOref :: Api.TxOutRef
-controlOref = Api.TxOutRef "0fdcd6f8b920ab0afe719463cb2cc8418a202be81833a5dde1495a818324d8c0" 4
+controlOref = Api.TxOutRef "59e82f54f10f1cf823a0c168dd8d977ff9db943b6b5171707f1743a08296582b" 2
 
 -- | Data and Redeemer ------------------------------------------------------------------
 

@@ -3,7 +3,7 @@ import type { HeadFC } from "gatsby";
 import BerryLogo from "../images/berry.svg";
 import DiscordLogo from "../images/github.png";
 import MatrixTitle from "../images/matrixTitle.svg";
-import Berry16 from "../images/berry16.jpeg";
+import metadata from "../data/metadata.json";
 import { WalletSelector } from "../components/walletSelector";
 import { HelpDialog } from "../components/helpDialog";
 import { BerryBuyButton } from "../components/buyButton";
@@ -68,7 +68,10 @@ const IndexPage = () => {
             <div className="w-full flex justify-center items-center relative">
               <img
                 className="w-[300px] xl:w-[400px] max-w-[80%] reveal-img rounded-lg border-4"
-                src={Berry16}
+                src={
+                  "https://ipfs.io/ipfs/" +
+                  metadata[selection?.id!].image.slice(7)
+                }
               />
               <div className="absolute bottom-[-100px] md:bottom-[-110px] text-white flex flex-col justify-center items-center reveal-img">
                 <div className="font-bold text-lg md:text-2xl font-title">

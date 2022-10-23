@@ -1,7 +1,6 @@
 import * as React from "react";
 import { Spinner } from "./spinner";
 import metadata from "../data/metadata.json";
-import Berry16 from "../images/berry16.jpeg"; // Just an example for now TODO!
 //@ts-ignore
 import ParticleEffectButton from "react-particle-effect-button";
 import { UTxO } from "lucid-cardano";
@@ -30,17 +29,14 @@ export const BerryBuyButton = ({
     return true;
   };
 
-  // const a = async () => {
+  // const deploy = async () => {
   //   const Contract = await import("../contract/offchain");
-  //   // console.log(await Contract.getMetadata(28));
   //   const txHash = await Contract.deploy();
-  //   // const txHash = await Contract.updateDescription(28, "WOWOWOW");
-  //   // // const txHash = await Contract.redeemControl();
   //   console.log(txHash);
   // };
 
   // React.useEffect(() => {
-  //   a();
+  //   deploy();
   // }, []);
 
   const preloadImage = (src: string) =>
@@ -83,8 +79,9 @@ export const BerryBuyButton = ({
             setLoading(true);
             setError("");
             try {
-              // const image = metadata[randomBerry].image;
-              await preloadImage(Berry16); // TODO
+              const image =
+                "https://ipfs.io/ipfs/" + metadata[selection.id].image.slice(7);
+              await preloadImage(image);
               const Contract = await import("../contract/offchain");
 
               const txHash = await Contract.mint(

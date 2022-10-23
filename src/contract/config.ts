@@ -1,11 +1,11 @@
 export const contractDetails = {
   controlOref: {
-    txHash: "0fdcd6f8b920ab0afe719463cb2cc8418a202be81833a5dde1495a818324d8c0",
-    outputIndex: 4,
+    txHash: "59e82f54f10f1cf823a0c168dd8d977ff9db943b6b5171707f1743a08296582b",
+    outputIndex: 2,
   },
   berryPolicyId: "a65e6e94d1a260dbc6c4d9319b45585fa54b83742a33a2c599df56b9",
   merkleRootMetadata:
-    "3f86716d4102aec464990141842510ac0c6f59b1c08b88324d7ed79b0311e160",
+    "f77dd3546d8f0fc78d869394c3fbd0f3bb09a9a1988896325f2255fec3fc6fad",
   merkleRootAssigned:
     "c237972884731f38919d629ae8a18c45badd0472f6d59984ba57fb1faf0e1330",
   payeeAddress:
@@ -15,5 +15,5 @@ export const contractDetails = {
   txValidFromThreshold: 100000,
   txValidToThreshold: 2000000,
   referenceScriptsTxHash:
-    "454419dd5d2703d8b5477cb2316421ce2a3a8b73654f3332e593d163345c82b5",
+    "22c744d37709d333357aefde0bd9c6e75e5a2e95341cbbaff866425bcd00af44",
 };
