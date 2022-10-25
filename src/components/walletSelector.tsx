@@ -68,7 +68,8 @@ export const WalletSelector = ({
                         .filter(
                           (walletName) =>
                             window.cardano[walletName].icon &&
-                            walletName !== "ccvault"
+                            walletName !== "ccvault" &&
+                            walletName !== "typhon"
                         ) //making sure only wallets following CIP-0030 are selectable
                         .map((walletName) => {
                           const wallet = window.cardano[walletName];
@@ -99,9 +100,7 @@ export const WalletSelector = ({
                             >
                               <img src={wallet.icon} className="w-[50px]" />
                               <div className="font-semibold mt-2">
-                                {wallet.name === "Flint Wallet"
-                                  ? "Flint"
-                                  : wallet.name}
+                                {wallet.name.split(" Wallet")[0]}
                               </div>
                             </button>
                           );

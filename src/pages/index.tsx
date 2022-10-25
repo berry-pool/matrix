@@ -121,7 +121,11 @@ const IndexPage = () => {
                 <BerryBuyButton
                   setStart={setStart}
                   setConfirmed={setConfirmed}
-                  title={`Buy for ${selection?.berryUtxo ? 5 : 10} ADA`}
+                  title={`Buy for ${
+                    selection?.berryUtxo
+                      ? contractDetails.paymentAmount / 1000000n / 2n
+                      : contractDetails.paymentAmount / 1000000n
+                  } ADA`}
                   selection={selection!}
                 />
               ) : (

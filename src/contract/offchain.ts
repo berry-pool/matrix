@@ -1,8 +1,8 @@
 import {
   Address,
+  applyParamsToScript,
   Assets,
   Blockfrost,
-  C,
   concat,
   Constr,
   Data,
@@ -16,7 +16,6 @@ import {
   PlutusData,
   PolicyId,
   SpendingValidator,
-  toHex,
   toLabel,
   toUnit,
   TxHash,
@@ -38,34 +37,34 @@ const lucid = await Lucid.new(
   "Preview",
 );
 
-// -- Instantiate validators ------------------------------------------------------------------
+// -- Utils ------------------------------------------------------------------
 
-const mintMain: MintingPolicy = {
-  type: "PlutusV2",
-  script: scripts.mintMain,
-};
+function keyAddressToData(address: Address): PlutusData {
+  const { paymentCredential } = lucid.utils
+    .getAddressDetails(address);
+  return new Constr(0, [
+    new Constr(0, [paymentCredential?.hash!]),
+    new Constr(1, []),
+  ]);
+}
 
-const spendReference: SpendingValidator = {
-  type: "PlutusV2",
-  script: scripts.spendReference,
-};
+function keyAddressWithKeyStakeToData(address: Address): PlutusData {
+  const { paymentCredential, stakeCredential } = lucid.utils
+    .getAddressDetails(address);
+  return new Constr(0, [
+    new Constr(0, [paymentCredential?.hash!]),
+    new Constr(0, [new Constr(0, [new Constr(0, [stakeCredential?.hash!])])]),
+  ]);
+}
 
-const spendControl: SpendingValidator = {
-  type: "PlutusV2",
-  script: scripts.spendControl,
-};
-
-const mintControl: MintingPolicy = {
-  type: "PlutusV2",
-  script: scripts.mintControl,
-};
-
-const mainPolicyId: PolicyId = lucid.utils.mintingPolicyToId(mintMain);
-const referenceAddress: Address = lucid.utils.validatorToAddress(
-  spendReference,
-);
-const controlAddress: Address = lucid.utils.validatorToAddress(spendControl);
-const controlPolicyId: PolicyId = lucid.utils.mintingPolicyToId(mintControl);
+function scriptAddressToData(address: Address): PlutusData {
+  const { paymentCredential } = lucid.utils
+    .getAddressDetails(address);
+  return new Constr(0, [
+    new Constr(1, [paymentCredential?.hash!]),
+    new Constr(1, []),
+  ]);
+}
 
 // -- Merkle trees ------------------------------------------------------------------
 
@@ -89,36 +88,71 @@ const assignedData = assigned.map((a) =>
 const merkleTreeMetadata = new MerkleTree(metadataData);
 const merkleTreeAssigned = new MerkleTree(assignedData);
 
-//----- Create fake policy which imitates Berries (will be removed in production)
+// -- Instantiate validators ------------------------------------------------------------------
 
-export const fakeMint = async (): Promise<TxHash> => {
-  lucid.selectWallet(window.walletApi);
-  const { paymentCredential } = lucid.utils.getAddressDetails(
-    await lucid.wallet.address(),
-  );
-
-  const fakeOldPolicy: MintingPolicy = {
-    type: "Native",
-    script: toHex(
-      C.NativeScript.new_script_pubkey(
-        C.ScriptPubkey.new(C.Ed25519KeyHash.from_hex(paymentCredential?.hash!)),
-      ).to_bytes(),
-    ),
-  };
-
-  const fakeOldPolicyId = lucid.utils.validatorToScriptHash(fakeOldPolicy);
-
-  const tx = await lucid.newTx()
-    .mintAssets({
-      [fakeOldPolicyId + utf8ToHex(`BerryTangelo`)]: 1n,
-      [fakeOldPolicyId + utf8ToHex(`BerryCoal`)]: 1n,
-    })
-    .attachMintingPolicy(fakeOldPolicy)
-    .complete();
-
-  const signedTx = await tx.sign().complete();
-  return signedTx.submit();
+const spendReference: SpendingValidator = {
+  type: "PlutusV2",
+  script: applyParamsToScript(
+    scripts.spendReference,
+    new Constr(0, [toLabel(100), toLabel(222)]),
+  ),
 };
+const referenceAddress: Address = lucid.utils.validatorToAddress(
+  spendReference,
+);
+
+const mintControl: MintingPolicy = {
+  type: "PlutusV2",
+  script: applyParamsToScript(
+    scripts.mintControl,
+    new Constr(0, [
+      new Constr(0, [
+        contractDetails.controlOref.txHash,
+      ]),
+      BigInt(contractDetails.controlOref.outputIndex),
+    ]),
+  ),
+};
+const controlPolicyId: PolicyId = lucid.utils.mintingPolicyToId(mintControl);
+
+const mintMain: MintingPolicy = {
+  type: "PlutusV2",
+  script: applyParamsToScript(
+    scripts.mintMain,
+    new Constr(0, [
+      toLabel(100),
+      toLabel(222),
+      toLabel(500) + utf8ToHex("Royalty"),
+    ]),
+    new Constr(0, [
+      controlPolicyId,
+      contractDetails.berryPolicyId,
+      new Constr(0, [merkleTreeMetadata.rootHash()]),
+      new Constr(0, [merkleTreeAssigned.rootHash()]),
+      scriptAddressToData(referenceAddress),
+      keyAddressWithKeyStakeToData(contractDetails.payeeAddress),
+      contractDetails.paymentAmount,
+      BigInt(contractDetails.mintStart),
+      new Constr(0, [
+        new Constr(0, [
+          contractDetails.royaltyOref.txHash,
+        ]),
+        BigInt(contractDetails.royaltyOref.outputIndex),
+      ]),
+    ]),
+  ),
+};
+const mainPolicyId: PolicyId = lucid.utils.mintingPolicyToId(mintMain);
+
+const spendControl: SpendingValidator = {
+  type: "PlutusV2",
+  script: applyParamsToScript(
+    scripts.spendControl,
+    contractDetails.controlOwner,
+    mainPolicyId,
+  ),
+};
+const controlAddress: Address = lucid.utils.validatorToAddress(spendControl);
 
 // -- Endpoints ------------------------------------------------------------------
 
@@ -232,7 +266,7 @@ export const deploy = async (): Promise<TxHash> => {
       Data.to(new Constr(0, [])),
     );
     tx.payToContract(controlAddress, {
-      inline: Data.to(new Constr(0, [0n])),
+      inline: Data.to(new Constr(1, [0n])),
     }, {
       [toUnit(controlPolicyId, utf8ToHex(`${i}`))]: 1n,
     });
@@ -249,12 +283,12 @@ export const deploy = async (): Promise<TxHash> => {
 
   const tx2 = await lucid.newTx().payToContract(
     controlAddress,
-    { inline: Data.to(new Constr(1, [])), scriptRef: spendControl },
+    { inline: Data.to(new Constr(0, [])), scriptRef: spendControl },
     {},
   )
     .payToContract(
       controlAddress,
-      { inline: Data.to(new Constr(1, [])), scriptRef: mintMain },
+      { inline: Data.to(new Constr(0, [])), scriptRef: mintMain },
       {},
     ).complete();
   const signedTx2 = await tx2.sign().complete();
@@ -333,7 +367,11 @@ export const mint = async (
     .payToContract(referenceAddress, Data.to(new Constr(0, [m, 1n])), {
       [toUnit(mainPolicyId, utf8ToHex(`Matrix${matrixId}`), 100)]: 1n,
     })
-    .payToContract(controlAddress, { inline: Data.to(1n) }, controlUtxo.assets)
+    .payToContract(
+      controlAddress,
+      { inline: Data.to(new Constr(1, [1n])) },
+      controlUtxo.assets,
+    )
     .payToAddress(contractDetails.payeeAddress, {
       lovelace: hasBerry
         ? contractDetails.paymentAmount / 2n
@@ -412,16 +450,43 @@ export const redeemControl = async (): Promise<TxHash> => {
     {},
   );
 
-  const tx = await lucid.newTx().collectFrom(controlUtxos, controlRedeemer)
+  const tx = await lucid.newTx()
+    .collectFrom(controlUtxos, controlRedeemer)
     .applyIf(referenceScripts.length > 0, (tx) => {
-      tx.collectFrom(referenceScripts, Data.to(new Constr(1, [])));
+      tx.collectFrom(referenceScripts, Data.empty());
     })
-    .mintAssets(controlAssets, controlRedeemer).addSigner(
+    .applyIf(referenceScripts.length == 0, (tx) => {
+      tx.attachSpendingValidator(spendControl);
+    })
+    .mintAssets(controlAssets, controlRedeemer)
+    .addSigner(
       await lucid.wallet.address(),
-    ).attachMintingPolicy(mintControl).attachSpendingValidator(spendControl)
+    )
+    .attachMintingPolicy(mintControl)
     .complete();
 
   const signedTx = await tx.sign().complete();
+  return signedTx.submit();
+};
+
+export const mintRoyalty = async (): Promise<TxHash> => {
+  lucid.selectWallet(window.walletApi);
+
+  const walletUtxos = await lucid.wallet.getUtxos();
+
+  const royaltyUtxo = walletUtxos.find((utxo) =>
+    utxo.txHash === contractDetails.royaltyOref.txHash &&
+    utxo.outputIndex === contractDetails.royaltyOref.outputIndex
+  );
+
+  if (!royaltyUtxo) throw new Error("NoUTxOError");
+
+  const tx = await lucid.newTx().collectFrom([royaltyUtxo]).mintAssets({
+    [toUnit(mainPolicyId, utf8ToHex(`Royalty`), 500)]: 1n,
+  }, Data.to(new Constr(2, []))).attachMintingPolicy(mintMain).complete();
+
+  const signedTx = await tx.sign().complete();
+
   return signedTx.submit();
 };
 

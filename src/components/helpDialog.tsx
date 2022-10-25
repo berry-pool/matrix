@@ -93,9 +93,13 @@ export const HelpDialog = ({
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
-                            A Matrix Berry costs 1000 ADA. For Berry holders
-                            it's half the price. Berry holders are eligible to
-                            buy one Matrix Berry for each Berry they own.
+                            A Matrix Berry costs{" "}
+                            {(
+                              contractDetails.paymentAmount / 1000000n
+                            ).toString()}{" "}
+                            ADA. For Berry holders it's half the price. Berry
+                            holders are eligible to buy one Matrix Berry for
+                            each Berry they own.
                           </Disclosure.Panel>
                         </>
                       )}
