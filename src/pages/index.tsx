@@ -106,7 +106,7 @@ const IndexPage = () => {
           )}
           {connected &&
             !start &&
-            (network === 0 ? (
+            (network === 1 ? (
               !Number.isInteger(selection?.id) ? (
                 <div className="text-white text-center w-[90%] max-w-md">
                   Matrix Berries are sold out.

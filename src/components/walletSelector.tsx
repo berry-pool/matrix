@@ -18,13 +18,6 @@ export const WalletSelector = ({
     setIsOpen(false);
   }
 
-  // This was used to initially deploy the control UTxOs. Not really relevant.
-  // const deploy = async () => {
-  //   const Contract = await import("../contract/offchain");
-  //   const txHash = await Contract.deploy();
-  //   console.log(txHash);
-  // };
-
   return (
     <Transition appear show={isOpen} as={React.Fragment}>
       <Dialog as="div" className="relative z-10" onClose={closeModal}>
