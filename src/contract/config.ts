@@ -15,6 +15,5 @@ export const contractDetails = {
   controlOwner: "d52e11f3e48436dd42dbec6d88c239732e503b8b7a32af58e5f87625",
   txValidFromThreshold: 100000,
   txValidToThreshold: 2000000,
-  referenceScriptsTxHash:
-    "0140f1bd2f0a355e266286dff24ab02a928e56167657843d2f0a2d1af2f9a0c9",
+  referenceScriptsTxHash: "<TO_UPDATE>",
 };
