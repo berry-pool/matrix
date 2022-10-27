@@ -25,7 +25,7 @@ import {
 import scripts from "./ghc/scripts.json";
 import assigned from "../data/berryAssigned.json";
 import metadata from "../data/metadata.json";
-import { contractDetails, refScript1 } from "./config";
+import { contractDetails, refScript1, refScript2 } from "./config";
 // create secrets.ts file at the root of the project with the constant projectId
 import { projectId } from "../../secrets";
 
@@ -355,7 +355,7 @@ export const mint = async (
 
   // We need to do this because of a subtle bug in Blockfrost
   referenceScripts[0].scriptRef = refScript1;
-  referenceScripts[1].scriptRef = refScript1;
+  referenceScripts[1].scriptRef = refScript2;
 
   const tx = await lucid.newTx()
     .collectFrom([controlUtxo], controlRedeemer)
@@ -409,7 +409,7 @@ export const burn = async (matrixId: number): Promise<TxHash> => {
   }]);
 
   // We need to do this because of a subtle bug in Blockfrost
-  referenceScripts[1].scriptRef = refScript1;
+  referenceScripts[0].scriptRef = refScript2;
 
   const tx = await lucid.newTx()
     .collectFrom([refNFTUtxo], refRedeemer)
@@ -449,7 +449,7 @@ export const redeemControl = async (): Promise<TxHash> => {
 
   // We need to do this because of a subtle bug in Blockfrost
   referenceScripts[0].scriptRef = refScript1;
-  referenceScripts[1].scriptRef = refScript1;
+  referenceScripts[1].scriptRef = refScript2;
 
   const controlRedeemer = Data.to(new Constr(1, []));
 
