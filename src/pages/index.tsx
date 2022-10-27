@@ -171,7 +171,7 @@ const IndexPage = () => {
                 className="w-[30px] md:w-[40px]"
               />
             </a>
-            <a href={"https://github.com"} target={"_blank"}>
+            <a href={"https://github.com/berry-pool/matrix"} target={"_blank"}>
               <div className="flex flex-row justify-center items-center ml-6 md:ml-10">
                 <img
                   draggable={false}
