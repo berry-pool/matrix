@@ -29,16 +29,6 @@ export const BerryBuyButton = ({
     return true;
   };
 
-  // const deploy = async () => {
-  //   const Contract = await import("../contract/offchain");
-  //   const txHash = await Contract.deploy();
-  //   console.log(txHash);
-  // };
-
-  // React.useEffect(() => {
-  //   deploy();
-  // }, []);
-
   const preloadImage = (src: string) =>
     new Promise((r) => {
       const image = new Image();
@@ -80,8 +70,9 @@ export const BerryBuyButton = ({
             setError("");
             try {
               const image =
-                "https://ipfs.io/ipfs/" + metadata[selection.id].image.slice(7);
-              await preloadImage(image);
+                "https://spacebudz.mypinata.cloud/ipfs/" +
+                metadata[selection.id].image.slice(7);
+              preloadImage(image);
               const Contract = await import("../contract/offchain");
 
               const txHash = await Contract.mint(

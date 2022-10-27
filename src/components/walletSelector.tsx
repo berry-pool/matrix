@@ -17,6 +17,14 @@ export const WalletSelector = ({
   function closeModal() {
     setIsOpen(false);
   }
+
+  // This was used to initially deploy the control UTxOs. Not really relevant.
+  // const deploy = async () => {
+  //   const Contract = await import("../contract/offchain");
+  //   const txHash = await Contract.deploy();
+  //   console.log(txHash);
+  // };
+
   return (
     <Transition appear show={isOpen} as={React.Fragment}>
       <Dialog as="div" className="relative z-10" onClose={closeModal}>
@@ -57,7 +65,7 @@ export const WalletSelector = ({
                   <p className="text-sm text-gray-500">
                     Select the wallet you would like to buy a Matrix Berry with.
                     As Berry holder you may want to select a wallet that
-                    contains a Berry. Hardware wallets do <b>not</b> work!
+                    contains a Berry.
                   </p>
                 </div>
 

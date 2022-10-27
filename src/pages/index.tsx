@@ -69,7 +69,7 @@ const IndexPage = () => {
               <img
                 className="w-[300px] xl:w-[400px] max-w-[80%] reveal-img rounded-lg border-4"
                 src={
-                  "https://ipfs.io/ipfs/" +
+                  "https://spacebudz.mypinata.cloud/ipfs/" +
                   metadata[selection?.id!].image.slice(7)
                 }
               />

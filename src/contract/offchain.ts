@@ -31,10 +31,10 @@ import { projectId } from "../../secrets";
 
 const lucid = await Lucid.new(
   new Blockfrost(
-    "https://cardano-preview.blockfrost.io/api/v0",
+    "https://cardano-mainnet.blockfrost.io/api/v0",
     projectId,
   ),
-  "Preview",
+  "Mainnet",
 );
 
 // -- Utils ------------------------------------------------------------------
@@ -158,7 +158,7 @@ const controlAddress: Address = lucid.utils.validatorToAddress(spendControl);
 
 export const getAllMintedIds = async (): Promise<number[]> => {
   const matrixAssets = await fetch(
-    `https://cardano-preview.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
+    `https://cardano-mainnet.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
     { headers: { project_id: projectId } },
   ).then((r) => r.json());
   if (!matrixAssets || matrixAssets.error) return [];
@@ -207,7 +207,7 @@ export const getRandomAvailable = async (): Promise<[number, UTxO | null]> => {
   ).map((unit) => hexToUtf8(unit.slice(56)));
 
   const matrixAssets = await fetch(
-    `https://cardano-preview.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
+    `https://cardano-mainnet.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
     { headers: { project_id: projectId } },
   ).then((r) => r.json());
 

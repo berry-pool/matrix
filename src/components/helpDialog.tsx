@@ -164,10 +164,12 @@ export const HelpDialog = ({
                             />
                           </Disclosure.Button>
                           <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
-                            Any CIP-0030 compatible wallet works. Unfortunately
-                            hardware wallets are not supported yet, since this
-                            mint makes use of the new changes from the Vasil
-                            era.
+                            Any CIP-0030 compatible wallet works. <br />{" "}
+                            Hardware wallets may work partially. The Vasil
+                            features are pretty new and not all wallets have
+                            added support for HWs yet. Also Ledger hasn't
+                            released the latest firmware yet (You can install it
+                            after enabling developer mode in Ledger Live).
                           </Disclosure.Panel>
                         </>
                       )}
@@ -191,6 +193,28 @@ export const HelpDialog = ({
                             someone else could have already minted the same
                             Matrix Berry shortly before you. But no costs are
                             incurred in that process.
+                          </Disclosure.Panel>
+                        </>
+                      )}
+                    </Disclosure>
+                    <Disclosure as="div" className="mt-2">
+                      {({ open }) => (
+                        <>
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
+                            <span>Nothing happens after clicking buy?</span>
+                            <ChevronUpIcon
+                              className={`${
+                                open ? "rotate-180 transform" : ""
+                              } h-5 w-5 text-gray-500`}
+                            />
+                          </Disclosure.Button>
+                          <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
+                            There is a high chance that your tx was rejected
+                            because of exceeding transaction cost limits. This
+                            usually occurs if your wallet contains a lot of
+                            assets or UTxOs. Make sure your reduce the wallet
+                            size by sending out tokens to another account or
+                            wallet.
                           </Disclosure.Panel>
                         </>
                       )}
