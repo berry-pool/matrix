@@ -219,6 +219,31 @@ export const HelpDialog = ({
                         </>
                       )}
                     </Disclosure>
+                    <Disclosure as="div" className="mt-2">
+                      {({ open }) => (
+                        <>
+                          <Disclosure.Button className="flex w-full justify-between rounded-lg bg-gray-100 px-4 py-2 text-left text-sm font-medium text-gray-900 hover:bg-gray-200 focus:outline-none focus-visible:ring focus-visible:ring-gray-500 focus-visible:ring-opacity-75">
+                            <span>Which Berries were already used?</span>
+                            <ChevronUpIcon
+                              className={`${
+                                open ? "rotate-180 transform" : ""
+                              } h-5 w-5 text-gray-500`}
+                            />
+                          </Disclosure.Button>
+                          <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
+                            Go to this{" "}
+                            <a
+                              href="https://matrix.berrypool.io/alreadyMinted/"
+                              target="_blank"
+                              className="text-purple-500 font-bold"
+                            >
+                              page
+                            </a>
+                            .
+                          </Disclosure.Panel>
+                        </>
+                      )}
+                    </Disclosure>
                   </div>
                 </div>
               </Dialog.Panel>
