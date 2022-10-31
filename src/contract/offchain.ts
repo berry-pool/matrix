@@ -206,10 +206,17 @@ export const getRandomAvailable = async (): Promise<[number, UTxO | null]> => {
     [] as Array<string>,
   ).map((unit) => hexToUtf8(unit.slice(56)));
 
-  const matrixAssets = await fetch(
+  const matrixAssetsPage1 = await fetch(
     `https://cardano-mainnet.blockfrost.io/api/v0/assets/policy/${mainPolicyId}`,
     { headers: { project_id: projectId } },
   ).then((r) => r.json());
+
+  const matrixAssetsPage2 = (await fetch(
+    `https://cardano-mainnet.blockfrost.io/api/v0/assets/policy/${mainPolicyId}?page=2`,
+    { headers: { project_id: projectId } },
+  ).then((r) => r.json())) || [];
+
+  const matrixAssets = matrixAssetsPage1.concat(matrixAssetsPage2);
 
   const availableIds: Array<number> = (() => {
     if (!matrixAssets || matrixAssets.error) {

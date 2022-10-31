@@ -10,7 +10,15 @@ export const getAllMintedIds = async (): Promise<number[]> => {
   ).then((r) => r.json());
   if (!matrixAssets || matrixAssets.error) return [];
 
-  return matrixAssets
+  const matrixAssetsPage2 =
+    (await fetch(
+      `https://cardano-mainnet.blockfrost.io/api/v0/assets/policy/${"01cecfaeda9d846c08675902b55a6371f593d9239744867462c5382e"}?page=2`,
+      { headers: { project_id: projectId } }
+    ).then((r) => r.json())) || [];
+
+  const allAssets = matrixAssets.concat(matrixAssetsPage2);
+
+  return allAssets
     .filter((asset: any) => fromUnit(asset.asset).label === 100)
     .map((asset: any) =>
       parseInt(hexToUtf8(fromUnit(asset.asset).name!).slice(6))
@@ -34,8 +42,8 @@ const AlreadyMinted = () => {
 
   return (
     <div>
-      {minted.map((m) => (
-        <div>{m}</div>
+      {minted.map((m, i) => (
+        <div key={i}>{m}</div>
       ))}
     </div>
   );
