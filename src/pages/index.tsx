@@ -94,7 +94,10 @@ const IndexPage = () => {
               </div>
             </div>
           )}
-          {!connected && (
+          <div className="font-bold text-white break-all text-center max-w-[90%]">
+            01cecfaeda9d846c08675902b55a6371f593d9239744867462c5382e
+          </div>
+          {/* {!connected && (
             <>
               <button
                 className="py-4 px-8 rounded-2xl text-white font-medium border-2 border-r-purple-500 border-t-purple-600 border-l-green-500 border-b-green-600"
@@ -111,8 +114,8 @@ const IndexPage = () => {
                 What am I doing here?
               </button>
             </>
-          )}
-          {connected &&
+          )} */}
+          {/* {connected &&
             !start &&
             (network === 1 ? (
               !Number.isInteger(selection?.id) ? (
@@ -163,7 +166,7 @@ const IndexPage = () => {
                 Wrong network,
                 <br /> please switch to mainnet.
               </div>
-            ))}
+            ))} */}
           {start && !final && (
             <div className="font-light text-white absolute bottom-28 opacity-90">
               {confirmed
