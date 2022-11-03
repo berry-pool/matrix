@@ -393,6 +393,7 @@ export const mint = async (
 
   const signedTx = await tx.sign().complete();
 
+  let counter = 0;
   return new Promise((res, rej) => {
     const interval = setInterval(async () => {
       try {
@@ -400,16 +401,22 @@ export const mint = async (
         clearInterval(interval);
         return res(txHash);
       } catch (e: any) {
+        counter++;
         console.log(e.message);
         if (
           !(
-            (e.message &&
+            ((e.message &&
+                e.message.includes(
+                  "Interval",
+                ) ||
               e.message.includes(
-                "OutsideValidityIntervalUTxO",
+                "interval",
               )) ||
-            e.includes(
-              "OutsideValidityIntervalUTxO",
-            )
+              e.includes(
+                "Interval",
+              ) || e.includes(
+                "interval",
+              )) && counter < 17
           )
         ) {
           clearInterval(interval);
