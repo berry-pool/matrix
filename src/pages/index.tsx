@@ -30,6 +30,14 @@ const IndexPage = () => {
     berryUtxo: UTxO | null;
   }>();
 
+  const [time, setTime] = React.useState(Date.now());
+
+  React.useEffect(() => {
+    setInterval(() => {
+      setTime(Date.now());
+    }, 1000);
+  }, []);
+
   return (
     <>
       <div className="w-screen h-screen bg-gray-900 relative overflow-hidden">
@@ -112,10 +120,10 @@ const IndexPage = () => {
                   Matrix Berries are sold out.
                 </div>
               ) : (selection?.berryUtxo &&
-                  Date.now() <=
+                  time <=
                     contractDetails.mintStart -
                       contractDetails.txValidToThreshold) ||
-                Date.now() >=
+                time >=
                   contractDetails.mintStart +
                     contractDetails.txValidFromThreshold ? (
                 <BerryBuyButton
