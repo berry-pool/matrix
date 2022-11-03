@@ -389,7 +389,7 @@ export const mint = async (
         : contractDetails.paymentAmount,
     })
     .readFrom(referenceScripts)
-    .complete();
+    .complete({ nativeUplc: false });
 
   const signedTx = await tx.sign().complete();
 
