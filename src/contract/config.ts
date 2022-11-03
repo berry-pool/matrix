@@ -13,7 +13,7 @@ export const contractDetails = {
     outputIndex: 2,
   },
   controlOwner: "d52e11f3e48436dd42dbec6d88c239732e503b8b7a32af58e5f87625",
-  txValidFromThreshold: 100000,
+  txValidFromThreshold: 1000,
   txValidToThreshold: 2000000,
   referenceScriptsTxHash:
     "6045d4d747deac057e677f0bee05a3413a4f0c0d4188de6fa536aa75d4cdb717",

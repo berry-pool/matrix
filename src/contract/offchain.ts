@@ -369,7 +369,7 @@ export const mint = async (
     .applyIf(hasBerry, (tx) => {
       tx.collectFrom([berryUtxo!]);
     })
-    .validFrom(Date.now() - contractDetails.txValidFromThreshold)
+    .validFrom(Date.now())
     .validTo(Date.now() + contractDetails.txValidToThreshold)
     .mintAssets({
       [toUnit(mainPolicyId, utf8ToHex(`Matrix${matrixId}`), 100)]: 1n,
@@ -393,7 +393,31 @@ export const mint = async (
 
   const signedTx = await tx.sign().complete();
 
-  return signedTx.submit();
+  return new Promise((res, rej) => {
+    const interval = setInterval(async () => {
+      try {
+        const txHash = await signedTx.submit();
+        clearInterval(interval);
+        return res(txHash);
+      } catch (e: any) {
+        console.log(e.message);
+        if (
+          !(
+            (e.message &&
+              e.message.includes(
+                "OutsideValidityIntervalUTxO",
+              )) ||
+            e.includes(
+              "OutsideValidityIntervalUTxO",
+            )
+          )
+        ) {
+          clearInterval(interval);
+          return rej(e);
+        }
+      }
+    }, 2000);
+  });
 };
 
 export const burn = async (matrixId: number): Promise<TxHash> => {
