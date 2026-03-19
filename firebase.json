@@ -1,7 +1,0 @@
-{
-  "hosting": {
-    "public": "public",
-    "site": "matrixberry",
-    "ignore": ["firebase.json", "**/.*", "**/node_modules/**"]
-  }
-}
